@@ -1,0 +1,4 @@
+#IDE files and directories
+*.iml
+*.xml
+.idea/
