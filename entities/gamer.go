@@ -5,6 +5,7 @@ type User struct {
 	Name    string `json:"name"`
 	Balance *int    `json:"balance, omitempty"`
 	//Points *int `json:"points, omitempty"`
+
 }
 
 var Users []User
@@ -21,4 +22,19 @@ func RemoveUser(id int) {
 		Users[id].Id = i
 	}
 	Users = append(Users[:id-1], Users[id:]...)
+}
+//
+//POST /user/{id}/take
+//Request
+//{
+//"points" :  300
+//}
+//Response:
+//{
+//"id": 1,
+//"name" :  name,
+//"balance": 700
+//}
+func UserTake(id, points int) (User, error) {
+
 }
