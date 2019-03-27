@@ -10,21 +10,10 @@ import (
 	"strconv"
 )
 
-func JsonWrite(){
+func JSONResponce(){
 
 }
-func UserAvailable(isEmpty bool, user entities.User, w http.ResponseWriter){
-	if !isEmpty {
-		user.Error = errors.New("the id cannot match any user")
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
-		}
-		return
-	}
-}
+
 
 func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth strange with sending status codes & errors
 	var user entities.User
@@ -79,7 +68,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 	user, isEmpty := entities.Users[id]
 
-	if !isEmpty {
+	if isEmpty == false {
+		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
@@ -111,7 +101,8 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	user, isEmpty := entities.Users[id]
 
-	if !isEmpty {
+	if isEmpty == false {
+		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
@@ -139,7 +130,8 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	user, isEmpty := entities.Users[id]
 
-	if !isEmpty {
+	if isEmpty == false {
+		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
@@ -190,7 +182,8 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	user, isEmpty := entities.Users[id]
 
-	if !isEmpty {
+	if isEmpty == false {
+		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
