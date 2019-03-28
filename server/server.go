@@ -10,8 +10,18 @@ import (
 	"strconv"
 )
 
-func JSONResponce(){
+//func respondWithError(w http.ResponseWriter, code int, user entities.User, message string, r http.Request) {
+//	dh.respondWithJSON(w, code, domain.ErrorResponse{Error: message}, r)
+//}
 
+func JSONResponce(w http.ResponseWriter, code int,  user entities.User, message string, r http.Request){
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(code)
+	if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
+		log.Println(message, user.Error)
+		return
+	}
 }
 
 
@@ -22,22 +32,23 @@ func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth stran
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error decoding client's data: ", user.Error)
+			log.Println("error encoding data for a client")
 			return
 		}
+		log.Println("error decoding client's data: ", user.Error) //fixed, all subsequent are not (yet)
 		return
 	}
 
 	entities.IsValid(&user)
-	entities.SaveUser(&user)
-
-	if user.Error != nil {
+	entities.SaveUser(&user, &entities.UsersCounter)
+	//check user.Error after IsValid and SaveUser
+	if user.Error != nil { //FIXME
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
 		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			panic(errAnswer)
+			log.Println("error encoding data for a client")
+			return
 		}
-		log.Println("error: ", user.Error)
 		return
 	}
 
@@ -59,16 +70,16 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
 
-	if errParams != nil {
+	if errParams != nil { //FIXME
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("error converting string to int: ", errParams)
 		return
 	}
 
-	user, isEmpty := entities.Users[id]
+	user, doesExist := entities.Users[id]
 
-	if isEmpty == false {
+	if doesExist == false {
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -99,9 +110,9 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, isEmpty := entities.Users[id]
+	user, doesExist := entities.Users[id]
 
-	if isEmpty == false {
+	if doesExist == false {
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -128,9 +139,9 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, isEmpty := entities.Users[id]
+	user, doesExist := entities.Users[id]
 
-	if isEmpty == false {
+	if doesExist == false {
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -142,7 +153,7 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var points entities.Request
+	var points entities.RequestPoints
 
 	if user.Error = json.NewDecoder(r.Body).Decode(&points); user.Error != nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -180,9 +191,9 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, isEmpty := entities.Users[id]
+	user, doesExist := entities.Users[id]
 
-	if isEmpty == false {
+	if doesExist == false {
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -194,7 +205,7 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var points entities.Request
+	var points entities.RequestPoints
 	if user.Error = json.NewDecoder(r.Body).Decode(&points); user.Error != nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusUnprocessableEntity)

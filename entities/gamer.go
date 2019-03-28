@@ -2,7 +2,7 @@ package entities
 
 import "errors"
 
-type Request struct {
+type RequestPoints struct {
 	Points int `json:"points"`
 }
 
@@ -14,7 +14,7 @@ type User struct {
 }
 
 var Users = make(map[int]*User)
-var usersCounter = 0
+var UsersCounter = 0
 
 func IsValid(user *User) {
 	if user.Name == "" {
@@ -26,8 +26,9 @@ func IsValid(user *User) {
 	}
 }
 
-func SaveUser(user *User) {
-	user.Id = usersCounter + 1
+func SaveUser(user *User, usersCounter *int) {
+	*usersCounter += 1
+	user.Id = *usersCounter
 	user.Balance -= 300
 	Users[user.Id] = user
 }
