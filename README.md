@@ -1,4 +1,5 @@
-#Gaming website
+# Gaming website
+
 This is a RESTful application-game in which each player holds certain amount of bonus points,
 which could be deposited or taken. Player's balance could only be >= 0.
 Players could join the tournament. When they join - they put a deposit from their account 
@@ -8,7 +9,8 @@ Deposit could only be >= 0.
 To start the server build & run the [server.go](./server/server.go) file. The server listens
 on port :8080 
 
-##Actions
+## Actions
+
 |Command & URI         |Action                             |
 |:---------------------|:----------------------------------|
 |`POST` /user          |Registers a new user               |
@@ -16,7 +18,9 @@ on port :8080
 |`DELETE` /user/{id}   |Removes a user                     |
 |`POST` /user/{id}/take|Takes 300 points from users account|
 |`POST` /user/{id}/fund|Adds 400 points from user's account|
+
 ---
+
 `POST` /user  
 **Request**  
   
@@ -32,7 +36,9 @@ on port :8080
     "name" :  name,  
     "balance": 700  
 }  
+
 ---
+
 `GET` /user/{id}  
 **Response**  
   
@@ -41,11 +47,15 @@ on port :8080
     "name" :  name,  
     "balance": 700  
 }  
+
 ---
+
 `DELETE` /user/{id}  
 **Response**    
 {}  
+
 ---
+
 `POST` /user/{id}/take  
 **Request** 
    
@@ -61,7 +71,9 @@ on port :8080
     "name" :  name,  
     "balance": 700  
 }  
+
 ---
+
 `POST` /user/{id}/fund  
 **Request**  
   
@@ -77,4 +89,5 @@ on port :8080
     "name" :  name,  
     "balance": 1100  
 }  
+
 ---
