@@ -2,32 +2,37 @@ package entities
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"strconv"
 )
 
 func registerNewUser(w http.ResponseWriter, r *http.Request) {
 	var user User
-	//user error for decoding error
-	if user.Error = json.NewDecoder(r.Body).Decode(&user); user.Error != nil {
-		JSONResponse(w, http.StatusUnprocessableEntity, user, "error decoding client's data")
+
+	if errDecode := json.NewDecoder(r.Body).Decode(&user); errDecode != nil {
+		user.Error = errDecode.Error()
+		JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
 		return
 	}
 
 	defer func() {
 		if errClose := r.Body.Close(); errClose != nil {
-			panic(errClose)
+			log.Println(errClose)
 		}
 	}()
 
-	if IsValid(&user) == false {
-		JSONResponse(w, http.StatusBadRequest, user, "user's data is not valid")
+	if !IsValid(&user) {
+		user.Error = errors.New("user's data is not valid").Error()
+		JSONResponse(w, http.StatusBadRequest, user, user.Error)
 		return
 	}
 
 	if errSave := SaveUser(&user, &UsersCounter); errSave != nil {
-		JSONResponse(w, http.StatusInternalServerError, user, "error saving a user")
+		user.Error = errSave.Error()
+		JSONResponse(w, http.StatusInternalServerError, user, user.Error)
 		return
 	}
 
@@ -37,18 +42,20 @@ func registerNewUser(w http.ResponseWriter, r *http.Request) {
 func getUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
-
+	var userError = new(User)
+	//fmt.Println(user)
 	if errParams != nil {
-		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
+		userError.Error = errParams.Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
 	user, doesExist := Users[id]
-
-	//fixme
-	if doesExist == false {
-		//send a mock user with mistake or just answer?????
-		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
+	//если не создаю юзера то далее будет паника т.к. в юзер записывается nil  а потом в nil я пытаюсь записать ошибку
+	//fmt.Println(user)
+	if !doesExist {
+		userError.Error = errors.New("the id cannot match any user").Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
@@ -58,25 +65,25 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 func deleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
+	var userError = new(User)
 
 	if errParams != nil {
-		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
+		userError.Error = errParams.Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
 	user, doesExist := Users[id]
 
-	//fixme
-	if doesExist == false {
-		//send a mock user with mistake or just answer?????
-		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
+	if !doesExist {
+		userError.Error = errors.New("the id cannot match any user").Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
-	//fixme
 	if errDelete := DeleteUser(user.Id); errDelete != nil {
-		//cannot send a user with error yet????
-		JSONResponseNoUser(w, http.StatusInternalServerError, "error deleting a user")
+		user.Error = errDelete.Error()
+		JSONResponse(w, http.StatusInternalServerError, *user, user.Error)
 		return
 	}
 
@@ -86,36 +93,40 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
+	var userError = new(User)
 
 	if errParams != nil {
-		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
+		userError.Error = errParams.Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
 	user, doesExist := Users[id]
 
-	//fixme
-	if doesExist == false {
-		//send a mock user with mistake or just answer?????
-		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
+	if !doesExist {
+		userError.Error = errors.New("the id cannot match any user").Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
 	var points RequestPoints
 
-	if user.Error = json.NewDecoder(r.Body).Decode(&points); user.Error != nil {
-		JSONResponse(w, http.StatusUnprocessableEntity, *user, "error decoding client's data")
+	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
+		user.Error = errDecode.Error()
+		JSONResponse(w, http.StatusUnprocessableEntity, *user, user.Error)
 		return
 	}
 
 	defer func() {
 		if errClose := r.Body.Close(); errClose != nil {
-			panic(errClose)
+			log.Println(errClose)
 		}
 	}()
 
 	if errTake := UserTake(user.Id, points.Points); errTake != nil {
-		JSONResponse(w, http.StatusBadRequest, *user, errTake.Error())
+		user.Error = errTake.Error()
+		JSONResponse(w, http.StatusBadRequest, *user, user.Error)
+		return
 	}
 
 	JSONResponse(w, http.StatusOK, *user, "successfully took the points from the client")
@@ -124,36 +135,40 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
+	var userError = new(User)
 
 	if errParams != nil {
-		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
+		userError.Error = errParams.Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
 	user, doesExist := Users[id]
 
-	//fixme
-	if doesExist == false {
-		//send a mock user with mistake or just answer?????
-		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
+	if !doesExist {
+		userError.Error = errors.New("the id cannot match any user").Error()
+		JSONResponse(w, http.StatusBadRequest, *userError, userError.Error)
 		return
 	}
 
 	var points RequestPoints
 
-	if user.Error = json.NewDecoder(r.Body).Decode(&points); user.Error != nil {
+	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
+		user.Error = errDecode.Error()
 		JSONResponse(w, http.StatusUnprocessableEntity, *user, "error decoding client's data")
 		return
 	}
 
 	defer func() {
 		if errClose := r.Body.Close(); errClose != nil {
-			panic(errClose)
+			log.Println(errClose)
 		}
 	}()
 
 	if errFund := UserFund(user.Id, points.Points); errFund != nil {
-		JSONResponse(w, http.StatusBadRequest, *user, errFund.Error())
+		user.Error = errFund.Error()
+		JSONResponse(w, http.StatusBadRequest, *user, user.Error)
+		return
 	}
 
 	JSONResponse(w, http.StatusOK, *user, "the client successfully funded the points")
