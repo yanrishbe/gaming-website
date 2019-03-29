@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/gorilla/mux"
 	"github.com/yanrishbe/gaming-website/entities"
 	"log"
@@ -10,32 +9,27 @@ import (
 	"strconv"
 )
 
-//func respondWithError(w http.ResponseWriter, code int, user entities.User, message string, r http.Request) {
-//	dh.respondWithJSON(w, code, domain.ErrorResponse{Error: message}, r)
-//}
-
-func JSONResponce(w http.ResponseWriter, code int,  user entities.User, message string, r http.Request){
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(code)
+func JSONResponse(w http.ResponseWriter, code int, user entities.User, message string) {
+	JSONResponseNoUser(w, code, message)
 	if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-		log.Println(message, user.Error)
+		log.Println("error encoding data for a client")
 		return
 	}
 }
 
+//fixme
+func JSONResponseNoUser(w http.ResponseWriter, code int, message string) {
+	//no body only status code???
+	log.Println(message)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(code)
+}
 
-func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth strange with sending status codes & errors
+func registerNewUser(w http.ResponseWriter, r *http.Request) {
 	var user entities.User
 	//user error for decoding error
 	if user.Error = json.NewDecoder(r.Body).Decode(&user); user.Error != nil {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
-		}
-		log.Println("error decoding client's data: ", user.Error) //fixed, all subsequent are not (yet)
+		JSONResponse(w, http.StatusUnprocessableEntity, user, "error decoding client's data")
 		return
 	}
 
@@ -45,129 +39,90 @@ func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth stran
 		}
 	}()
 
-	if entities.IsValid(&user) == false { //FIXME
-		//how to answer
-		//json write
+	if entities.IsValid(&user) == false {
+		JSONResponse(w, http.StatusBadRequest, user, "user's data is not valid")
 		return
 	}
 
-	if errSave := entities.SaveUser(&user, &entities.UsersCounter); errSave != nil { //FIXME
-		//how to answer
-		//json write
+	if errSave := entities.SaveUser(&user, &entities.UsersCounter); errSave != nil {
+		JSONResponse(w, http.StatusInternalServerError, user, "error saving a user")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
-	if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-		log.Println("error encoding data for a client")
-		return
-	}
+	JSONResponse(w, http.StatusCreated, user, "successfully created a client")
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
 
-	if errParams != nil { //FIXME
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("error converting string to int: ", errParams)
+	if errParams != nil {
+		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
 		return
 	}
 
 	user, doesExist := entities.Users[id]
 
-	if doesExist == false { //FIXME
-	//send a mock user with mistake or just answer?????
-		var user entities.User
-		user.Error = errors.New("the id cannot match any user")
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
-		}
+	//fixme
+	if doesExist == false {
+		//send a mock user with mistake or just answer?????
+		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-		log.Println("error encoding data for a client")
-		return
-	}
+	JSONResponse(w, http.StatusOK, *user, "successfully sent info about the user")
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
 
-	if errParams != nil { //FIXME
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("error converting string to int: ", errParams)
+	if errParams != nil {
+		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
 		return
 	}
 
 	user, doesExist := entities.Users[id]
 
-	if doesExist == false { //FIXME
-		var user entities.User
-		user.Error = errors.New("the id cannot match any user")
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
-		}
+	//fixme
+	if doesExist == false {
+		//send a mock user with mistake or just answer?????
+		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
 		return
 	}
 
-	errDelete := entities.DeleteUser(user.Id)
-	if errDelete != nil { //FIXME
-		//how to answer
-		//json write
+	//fixme
+	if errDelete := entities.DeleteUser(user.Id); errDelete != nil {
+		//cannot send a user with error yet????
+		JSONResponseNoUser(w, http.StatusInternalServerError, "error deleting a user")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusNoContent)
+
+	JSONResponseNoUser(w, http.StatusNoContent, "successfully deleted the user")
 }
 
 func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
 
-	if errParams != nil { //FIXME
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("error converting string to int: ", errParams)
+	if errParams != nil {
+		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
 		return
 	}
 
 	user, doesExist := entities.Users[id]
 
-	if doesExist == false { //FIXME
-		var user entities.User
-		user.Error = errors.New("the id cannot match any user")
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
-		}
+	//fixme
+	if doesExist == false {
+		//send a mock user with mistake or just answer?????
+		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
 		return
 	}
 
 	var points entities.RequestPoints
 
 	if user.Error = json.NewDecoder(r.Body).Decode(&points); user.Error != nil {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error decoding client's data: ", user.Error)
-			return
-		}
+		JSONResponse(w, http.StatusUnprocessableEntity, *user, "error decoding client's data")
 		return
 	}
 
@@ -177,17 +132,11 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	errTake := entities.UserTake(user.Id, points.Points) //FIXME
-	if errTake != nil {
-		//how to answer
+	if errTake := entities.UserTake(user.Id, points.Points); errTake != nil {
+		JSONResponse(w, http.StatusBadRequest, *user, errTake.Error())
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-		log.Println("error encoding data for a client")
-		return
-	}
+	JSONResponse(w, http.StatusOK, *user, "successfully took the points from the client")
 }
 
 func fundUserPoints(w http.ResponseWriter, r *http.Request) {
@@ -195,34 +144,23 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	id, errParams := strconv.Atoi(params["id"])
 
 	if errParams != nil {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("error converting string to int: ", errParams)
+		JSONResponseNoUser(w, http.StatusInternalServerError, "error converting string to int")
 		return
 	}
 
 	user, doesExist := entities.Users[id]
 
+	//fixme
 	if doesExist == false {
-		var user entities.User
-		user.Error = errors.New("the id cannot match any user")
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
-		}
+		//send a mock user with mistake or just answer?????
+		JSONResponseNoUser(w, http.StatusBadRequest, "the id cannot match any user")
 		return
 	}
 
 	var points entities.RequestPoints
+
 	if user.Error = json.NewDecoder(r.Body).Decode(&points); user.Error != nil {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error decoding client's data: ", user.Error)
-			return
-		}
+		JSONResponse(w, http.StatusUnprocessableEntity, *user, "error decoding client's data")
 		return
 	}
 
@@ -232,18 +170,11 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	errFund := entities.UserFund(user.Id, points.Points)
-
-	if errFund != nil { //FIXME
-		//do sth
+	if errFund := entities.UserFund(user.Id, points.Points); errFund != nil {
+		JSONResponse(w, http.StatusBadRequest, *user, errFund.Error())
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-		log.Println("error encoding data for a client")
-		return
-	}
+	JSONResponse(w, http.StatusOK, *user, "the client successfully funded the points")
 }
 
 func main() {
