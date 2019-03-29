@@ -3,10 +3,11 @@ package entities
 import (
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 func registerNewUser(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +82,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errDelete := DeleteUser(user.Id); errDelete != nil {
+	if errDelete := DeleteUser(user.ID); errDelete != nil {
 		user.Error = errDelete.Error()
 		JSONResponse(w, http.StatusInternalServerError, *user, user.Error)
 		return
@@ -123,7 +124,7 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if errTake := UserTake(user.Id, points.Points); errTake != nil {
+	if errTake := UserTake(user.ID, points.Points); errTake != nil {
 		user.Error = errTake.Error()
 		JSONResponse(w, http.StatusBadRequest, *user, user.Error)
 		return
@@ -165,7 +166,7 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if errFund := UserFund(user.Id, points.Points); errFund != nil {
+	if errFund := UserFund(user.ID, points.Points); errFund != nil {
 		user.Error = errFund.Error()
 		JSONResponse(w, http.StatusBadRequest, *user, user.Error)
 		return
@@ -174,6 +175,7 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, *user, "the client successfully funded the points")
 }
 
+//InitRouter registers handlers and returns a pointer to the router
 func InitRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/user", registerNewUser).Methods(http.MethodPost)

@@ -1,9 +1,11 @@
+//Package main runs the server
 package main
 
 import (
-	"github.com/yanrishbe/gaming-website/entities"
 	"log"
 	"net/http"
+
+	"github.com/yanrishbe/gaming-website/entities"
 )
 
 func main() {

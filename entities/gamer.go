@@ -1,25 +1,28 @@
+//Package entities implements methods for storing and writing user's data and handling user's commands
 package entities
 
 import "errors"
 
+//RequestPoints represents a struct to send take and fund requests to the gaming website
 type RequestPoints struct {
 	Points int `json:"points"`
 }
 
-type ResponseDelete struct {
-	Error error
-}
-
+//User struct represents a struct necessary for storing and changing user's data
 type User struct {
-	Id      int    `json:"id"`
+	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Balance int    `json:"balance"`
 	Error   string `json:"error"`
 }
 
+//Users collects all user's accounts in a map, which key is a user's id
 var Users = make(map[int]*User)
+
+//UsersCounter is necessary for incrementing user's id
 var UsersCounter = 0
 
+//IsValid checks whether it is possible to register a new user or not
 func IsValid(user *User) bool {
 	if user.Name == "" || user.Balance < 300 {
 		return false
@@ -27,14 +30,16 @@ func IsValid(user *User) bool {
 	return true
 }
 
+//SaveUser registers a new user
 func SaveUser(user *User, usersCounter *int) error {
-	*usersCounter += 1
-	user.Id = *usersCounter
+	*usersCounter++
+	user.ID = *usersCounter
 	user.Balance -= 300
-	Users[user.Id] = user
+	Users[user.ID] = user
 	return nil
 }
 
+//DeleteUser removes a user from Users map
 func DeleteUser(id int) error {
 	if Users[id].Error != "" {
 		Users[id].Error = ""
@@ -43,6 +48,7 @@ func DeleteUser(id int) error {
 	return nil
 }
 
+//UserTake takes the requested amount of points from a user's balance
 func UserTake(id, points int) error {
 	if Users[id].Error != "" {
 		Users[id].Error = ""
@@ -54,8 +60,9 @@ func UserTake(id, points int) error {
 	return nil
 }
 
-//на входе можем получить старую ошибку из userTake
+//UserFund adds the requested amount of points to user's balance
 func UserFund(id, points int) error {
+	//на входе можем получить старую ошибку из userTake
 	if Users[id].Error != "" {
 		Users[id].Error = ""
 	}
