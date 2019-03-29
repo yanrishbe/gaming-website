@@ -10,12 +10,11 @@ type ResponseDelete struct {
 	Error error
 }
 
-
 type User struct {
 	Id      int    `json:"id"`
 	Name    string `json:"name"`
 	Balance int    `json:"balance"`
-	Error   string  `json:"error"`
+	Error   string `json:"error"`
 }
 
 var Users = make(map[int]*User)
@@ -37,23 +36,29 @@ func SaveUser(user *User, usersCounter *int) error {
 }
 
 func DeleteUser(id int) error {
+	if Users[id].Error != "" {
+		Users[id].Error = ""
+	}
 	delete(Users, id)
 	return nil
 }
 
 func UserTake(id, points int) error {
+	if Users[id].Error != "" {
+		Users[id].Error = ""
+	}
 	if Users[id].Balance < points {
 		return errors.New("not enough balance to execute the request")
 	}
 	Users[id].Balance -= points
 	return nil
 }
+
 //на входе можем получить старую ошибку из userTake
 func UserFund(id, points int) error {
-	if Users[id].Error != ""{
+	if Users[id].Error != "" {
 		Users[id].Error = ""
 	}
 	Users[id].Balance += points
 	return nil
 }
-
