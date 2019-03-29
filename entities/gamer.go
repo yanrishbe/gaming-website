@@ -16,36 +16,41 @@ type User struct {
 var Users = make(map[int]*User)
 var UsersCounter = 0
 
-func IsValid(user *User) {
+func IsValid(user *User) bool {
 	if user.Name == "" {
 		user.Error = errors.New("wrong input, the name is not defined")
-		return
+		return false
 	} else if user.Balance < 300 {
 		user.Error = errors.New("wrong input, not enough balance to register a user")
-		return
+		return false
 	}
+	return true
 }
 
-func SaveUser(user *User, usersCounter *int) {
+func SaveUser(user *User, usersCounter *int) error {
 	*usersCounter += 1
 	user.Id = *usersCounter
 	user.Balance -= 300
 	Users[user.Id] = user
+	return nil
 }
 
-func DeleteUser(id int) {
+func DeleteUser(id int) error {
 	delete(Users, id)
+	return nil
 }
 
-func UserTake(id, points int) {
+func UserTake(id, points int) error {
 	if Users[id].Balance < points {
 		Users[id].Error = errors.New("not enough balance to execute the request")
-		return
+		return errors.New("error taking client's points")
 	}
 	Users[id].Balance -= points
+	return nil
 }
 
-func UserFund(id, points int){
+func UserFund(id, points int) error {
 	Users[id].Balance += points
+	return nil
 }
 

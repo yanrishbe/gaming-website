@@ -27,7 +27,7 @@ func JSONResponce(w http.ResponseWriter, code int,  user entities.User, message 
 
 func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth strange with sending status codes & errors
 	var user entities.User
-
+	//user error for decoding error
 	if user.Error = json.NewDecoder(r.Body).Decode(&user); user.Error != nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -39,16 +39,21 @@ func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth stran
 		return
 	}
 
-	entities.IsValid(&user)
-	entities.SaveUser(&user, &entities.UsersCounter)
-	//check user.Error after IsValid and SaveUser
-	if user.Error != nil { //FIXME
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if errAnswer := json.NewEncoder(w).Encode(user); errAnswer != nil {
-			log.Println("error encoding data for a client")
-			return
+	defer func() {
+		if errClose := r.Body.Close(); errClose != nil {
+			panic(errClose)
 		}
+	}()
+
+	if entities.IsValid(&user) == false { //FIXME
+		//how to answer
+		//json write
+		return
+	}
+
+	if errSave := entities.SaveUser(&user, &entities.UsersCounter); errSave != nil { //FIXME
+		//how to answer
+		//json write
 		return
 	}
 
@@ -58,12 +63,6 @@ func registerNewUser(w http.ResponseWriter, r *http.Request) { //TODO: sth stran
 		log.Println("error encoding data for a client")
 		return
 	}
-
-	defer func() {
-		if errClose := r.Body.Close(); errClose != nil {
-			panic(errClose)
-		}
-	}()
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +78,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 	user, doesExist := entities.Users[id]
 
-	if doesExist == false {
+	if doesExist == false { //FIXME
+	//send a mock user with mistake or just answer?????
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -103,7 +103,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
 
-	if errParams != nil {
+	if errParams != nil { //FIXME
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("error converting string to int: ", errParams)
@@ -112,7 +112,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	user, doesExist := entities.Users[id]
 
-	if doesExist == false {
+	if doesExist == false { //FIXME
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -124,7 +124,13 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entities.DeleteUser(user.Id)
+	errDelete := entities.DeleteUser(user.Id)
+	if errDelete != nil { //FIXME
+		//how to answer
+		//json write
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -132,7 +138,7 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, errParams := strconv.Atoi(params["id"])
 
-	if errParams != nil {
+	if errParams != nil { //FIXME
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("error converting string to int: ", errParams)
@@ -141,7 +147,7 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	user, doesExist := entities.Users[id]
 
-	if doesExist == false {
+	if doesExist == false { //FIXME
 		var user entities.User
 		user.Error = errors.New("the id cannot match any user")
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -164,7 +170,17 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	entities.UserTake(user.Id, points.Points)
+
+	defer func() {
+		if errClose := r.Body.Close(); errClose != nil {
+			panic(errClose)
+		}
+	}()
+
+	errTake := entities.UserTake(user.Id, points.Points) //FIXME
+	if errTake != nil {
+		//how to answer
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -172,12 +188,6 @@ func takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		log.Println("error encoding data for a client")
 		return
 	}
-
-	defer func() {
-		if errClose := r.Body.Close(); errClose != nil {
-			panic(errClose)
-		}
-	}()
 }
 
 func fundUserPoints(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +225,18 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	entities.UserFund(user.Id, points.Points)
+
+	defer func() {
+		if errClose := r.Body.Close(); errClose != nil {
+			panic(errClose)
+		}
+	}()
+
+	errFund := entities.UserFund(user.Id, points.Points)
+
+	if errFund != nil { //FIXME
+		//do sth
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -223,12 +244,6 @@ func fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		log.Println("error encoding data for a client")
 		return
 	}
-
-	defer func() {
-		if errClose := r.Body.Close(); errClose != nil {
-			panic(errClose)
-		}
-	}()
 }
 
 func main() {
