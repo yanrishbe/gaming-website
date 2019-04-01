@@ -1,4 +1,4 @@
-package entities
+package main
 
 import (
 	"encoding/json"
@@ -7,8 +7,21 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/yanrishbe/gaming-website/db"
+
 	"github.com/gorilla/mux"
 )
+
+//RequestPoints represents a struct to send take and fund requests to the gaming website
+type RequestPoints struct {
+	Points int `json:"points"`
+}
+
+//Response struct is a struct used for sending an answer to a client
+type Response struct {
+	UsersMap *db.UsersMap `json:"user"`
+	Error    *string      `json:"error"`
+}
 
 func registerNewUser(w http.ResponseWriter, r *http.Request) {
 	var user User
