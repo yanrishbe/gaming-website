@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 )
 
 //JSONResponse encodes user's data for a client
-func JSONResponse(w http.ResponseWriter, code int, user User, message string) {
+func JSONResponse(w http.ResponseWriter, code int, user UserResponse, message string) {
 	log.Println(message)
 	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
