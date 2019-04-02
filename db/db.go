@@ -7,6 +7,7 @@ import (
 	"github.com/yanrishbe/gaming-website/entities"
 )
 
+//DB struct stores users' data in UsersMap
 type DB struct {
 	UsersMap     map[int]*entities.User
 	UsersCounter int
@@ -21,7 +22,7 @@ func (db *DB) SaveUser(user *entities.User) error {
 	return nil
 }
 
-//DeleteUser removes a user from Users map
+//DeleteUser removes a user from the UsersMap
 func (db *DB) DeleteUser(id int) error {
 	delete(db.UsersMap, id)
 	return nil
@@ -40,4 +41,11 @@ func (db *DB) UserTake(id, points int) error {
 func (db *DB) UserFund(id, points int) error {
 	db.UsersMap[id].Balance += points
 	return nil
+}
+
+//New is used to create an instance of DB struct and initialize it
+func New() *DB {
+	db := new(DB)
+	db.UsersMap = make(map[int]*entities.User)
+	return db
 }

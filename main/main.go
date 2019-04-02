@@ -6,9 +6,7 @@ import (
 )
 
 func main() {
-	api := server.API{}
-	api.New()
-	//fmt.Println(api)
+	api := server.New()
 	api.InitRouter()
 	api.Run(":8080")
 }
