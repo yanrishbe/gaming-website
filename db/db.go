@@ -43,9 +43,9 @@ func (db *DB) UserFund(id, points int) error {
 	return nil
 }
 
-//New is used to create an instance of DB struct and initialize it
+// New is used to create an instance of DB struct and initialize it
 func New() *DB {
-	db := new(DB)
-	db.UsersMap = make(map[int]*entities.User)
-	return db
+	return &DB{
+		UsersMap: make(map[int]*entities.User),
+	}
 }

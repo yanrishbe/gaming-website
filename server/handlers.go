@@ -31,7 +31,7 @@ type API struct {
 	DB     *db.DB
 }
 
-func isValid(user entities.User) bool {
+func canRegister(user entities.User) bool {
 	if user.Name == "" || user.Balance < 300 {
 		return false
 	}
@@ -54,7 +54,7 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if !isValid(user.User) {
+	if !canRegister(user.User) {
 		user.Error = errors.New("user's data is not valid").Error()
 		JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
 		return
@@ -222,8 +222,7 @@ func (a *API) Run(host string) {
 
 //New initializes an instance of API struct
 func New() *API {
-	a := new(API)
-	a.DB = db.New()
-	a.Router = mux.NewRouter()
-	return a
+	return &API{
+		Router: mux.NewRouter(), DB: db.New(),
+	}
 }
