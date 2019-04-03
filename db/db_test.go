@@ -3,8 +3,6 @@ package db
 import (
 	"testing"
 
-	//"github.com/yanrishbe/gaming-website/server"
-
 	"github.com/yanrishbe/gaming-website/entities"
 
 	"github.com/stretchr/testify/require"
@@ -31,8 +29,6 @@ var tableUsers = []testUsers{
 }
 
 var mockMap = New()
-
-//var mockPoints = server.RequestPoints{Points: 300}
 
 func TestDB_SaveUser(t *testing.T) {
 	require := require.New(t)

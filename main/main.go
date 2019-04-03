@@ -1,4 +1,4 @@
-//Package main is used to run the server
+// Package main is used for running the server
 package main
 
 import (

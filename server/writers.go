@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//JSONResponse encodes user's data for a client
+// JSONResponse encodes user's data for a client
 func JSONResponse(w http.ResponseWriter, code int, user UserResponse, message string) {
 	log.Println(message)
 	w.WriteHeader(code)
@@ -17,8 +17,8 @@ func JSONResponse(w http.ResponseWriter, code int, user UserResponse, message st
 	}
 }
 
-//JSONResponseNoUser encodes data for a client without  returning a User struct entity
-func JSONResponseNoUser(w http.ResponseWriter, code int, message string) {
+// JSONResponseNoUser encodes data for a client without  returning a User struct entity
+func ResponseNoUser(w http.ResponseWriter, code int, message string) {
 	log.Println(message)
 	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")

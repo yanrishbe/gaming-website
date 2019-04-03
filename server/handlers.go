@@ -1,4 +1,4 @@
-//Package server is used to handle all client's requests
+// Package server is used to handle all client's requests
 package server
 
 import (
@@ -14,18 +14,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//RequestPoints represents a struct to send "take" and "fund" requests to the gaming website
+// RequestPoints represents a struct to send "take" and "fund" requests to the gaming website
 type RequestPoints struct {
 	Points int `json:"points"`
 }
 
-//UserResponse struct is a struct used for sending an answer to a client
+// UserResponse struct is a struct used for sending an answer to a client
 type UserResponse struct {
 	entities.User `json:"user"`
 	Error         string `json:"error"`
 }
 
-//API struct is used to initialize a router and a database
+// API struct is used to initialize a router and a database
 type API struct {
 	Router *mux.Router
 	DB     *db.DB
@@ -117,7 +117,7 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	JSONResponseNoUser(w, http.StatusOK, "successfully deleted the user")
+	ResponseNoUser(w, http.StatusOK, "successfully deleted the user")
 }
 
 func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +206,7 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, *userResponse, "the client successfully funded the points")
 }
 
-//InitRouter registers handlers and returns a pointer to the router
+// InitRouter registers handlers
 func (a *API) InitRouter() {
 	a.Router.HandleFunc("/user", a.registerNewUser).Methods(http.MethodPost)
 	a.Router.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
@@ -215,12 +215,12 @@ func (a *API) InitRouter() {
 	a.Router.HandleFunc("/user/{id}/fund", a.fundUserPoints).Methods(http.MethodPost)
 }
 
-//Run the app on it's router
+// Run the app on it's router
 func (a *API) Run(host string) {
 	log.Fatal(http.ListenAndServe(host, a.Router))
 }
 
-//New initializes an instance of API struct
+// New initializes an instance of API struct
 func New() *API {
 	return &API{
 		Router: mux.NewRouter(), DB: db.New(),
