@@ -22,6 +22,7 @@ type RequestPoints struct {
 
 // UserResponse struct is a struct used for sending an answer to a client
 type UserResponse struct {
+	ID            int `json:"id"`
 	entities.User `json:"user"`
 	Error         string `json:"error"`
 }
@@ -47,7 +48,7 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if errSave := a.DB.SaveUser(&user.User); errSave != nil {
+	if _, errSave := a.DB.SaveUser(&user.User); errSave != nil {
 		user.Error = errSave.Error()
 		if match := strings.EqualFold(user.Error, "user's data is not valid"); match {
 			JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)

@@ -23,17 +23,25 @@ func canRegister(user entities.User) bool {
 }
 
 // SaveUser registers a new user
-func (db *DB) SaveUser(user *entities.User) error {
+func (db *DB) SaveUser(user *entities.User) (int, error) {
 	if !canRegister(*user) {
-		return errors.New("user's data is not valid")
+		return 0, errors.New("user's data is not valid")
 	}
 	db.mutex.Lock()
 	db.UsersCounter++
-	user.ID = db.UsersCounter
+	//user.ID = db.UsersCounter
 	user.Balance -= 300
-	db.UsersMap[user.ID] = user
+	db.UsersMap[db.UsersCounter] = user
 	db.mutex.Unlock()
-	return nil
+	return db.UsersCounter, nil
+}
+
+func (db *DB) GetUser(id int) (*entities.User, error) {
+	user, doesExist := db.UsersMap[id]
+	if !doesExist {
+		return nil, errors.New("the id cannot match any user")
+	}
+	return user, nil
 }
 
 // DeleteUser removes a user from the UsersMap
