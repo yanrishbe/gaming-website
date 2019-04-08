@@ -10,7 +10,7 @@ import (
 
 // DB struct stores users' data in UsersMap
 type DB struct {
-	mutex        *sync.Mutex
+	mutex        *sync.RWMutex
 	UsersMap     map[int]*entities.User
 	UsersCounter int
 }
@@ -85,13 +85,13 @@ func (db *DB) UserFund(id, points int) error {
 // New is used to create an instance of DB struct and initialize it
 func New() *DB {
 	return &DB{
-		mutex:    &sync.Mutex{},
+		mutex:    &sync.RWMutex{},
 		UsersMap: make(map[int]*entities.User),
 	}
 }
 
 func (db *DB) CountUsers() int {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	db.mutex.RLock()
+	defer db.mutex.RUnlock()
 	return len(db.UsersMap)
 }
