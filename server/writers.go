@@ -17,7 +17,7 @@ func JSONResponse(w http.ResponseWriter, code int, user UserResponse, message st
 	}
 }
 
-// JSONResponseNoUser encodes data for a client without  returning a User struct entity
+// ResponseNoUser encodes data for a client without returning a User struct entity
 func ResponseNoUser(w http.ResponseWriter, code int, message string) {
 	log.Println(message)
 	w.WriteHeader(code)

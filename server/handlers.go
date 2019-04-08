@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/yanrishbe/gaming-website/db"
 	"github.com/yanrishbe/gaming-website/entities"
@@ -31,14 +32,6 @@ type API struct {
 	DB     *db.DB
 }
 
-func canRegister(user entities.User) bool {
-	if user.Name == "" || user.Balance < 300 {
-		return false
-	}
-	return true
-
-}
-
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 	var user UserResponse
 
@@ -54,14 +47,12 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if !canRegister(user.User) {
-		user.Error = errors.New("user's data is not valid").Error()
-		JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
-		return
-	}
-
 	if errSave := a.DB.SaveUser(&user.User); errSave != nil {
 		user.Error = errSave.Error()
+		if match := strings.EqualFold(user.Error, "user's data is not valid"); match {
+			JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
+			return
+		}
 		JSONResponse(w, http.StatusInternalServerError, user, user.Error)
 		return
 	}
@@ -103,16 +94,12 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, doesExist := a.DB.UsersMap[id]
-
-	if !doesExist {
-		userResponse.Error = errors.New("the id cannot match any user").Error()
-		JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
-		return
-	}
-
-	if errDelete := a.DB.DeleteUser(user.ID); errDelete != nil {
+	if errDelete := a.DB.DeleteUser(id); errDelete != nil {
 		userResponse.Error = errDelete.Error()
+		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
+			JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+			return
+		}
 		JSONResponse(w, http.StatusInternalServerError, *userResponse, userResponse.Error)
 		return
 	}
@@ -131,14 +118,6 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, doesExist := a.DB.UsersMap[id]
-
-	if !doesExist {
-		userResponse.Error = errors.New("the id cannot match any user").Error()
-		JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
-		return
-	}
-
 	var points RequestPoints
 
 	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
@@ -153,8 +132,12 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if errTake := a.DB.UserTake(user.ID, points.Points); errTake != nil {
+	if errTake := a.DB.UserTake(id, points.Points); errTake != nil {
 		userResponse.Error = errTake.Error()
+		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
+			JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+			return
+		}
 		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
@@ -174,14 +157,6 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, doesExist := a.DB.UsersMap[id]
-
-	if !doesExist {
-		userResponse.Error = errors.New("the id cannot match any user").Error()
-		JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
-		return
-	}
-
 	var points RequestPoints
 
 	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
@@ -196,8 +171,12 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if errFund := a.DB.UserFund(user.ID, points.Points); errFund != nil {
+	if errFund := a.DB.UserFund(id, points.Points); errFund != nil {
 		userResponse.Error = errFund.Error()
+		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
+			JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+			return
+		}
 		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
