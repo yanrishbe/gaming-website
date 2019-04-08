@@ -30,15 +30,14 @@ func (db *DB) SaveUser(user *entities.User) (int, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 	db.UsersCounter++
-	//user.ID = db.UsersCounter
 	user.Balance -= 300
 	db.UsersMap[db.UsersCounter] = user
 	return db.UsersCounter, nil
 }
 
 func (db *DB) GetUser(id int) (*entities.User, error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
+	db.mutex.RLock()
+	defer db.mutex.RUnlock()
 	user, doesExist := db.UsersMap[id]
 	if !doesExist {
 		return nil, errors.New("the id cannot match any user")
