@@ -3,7 +3,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -35,7 +34,6 @@ type API struct {
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 	var user UserResponse
-
 	if errDecode := json.NewDecoder(r.Body).Decode(&user.User); errDecode != nil {
 		user.Error = errDecode.Error()
 		JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
@@ -48,7 +46,8 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if _, errSave := a.DB.SaveUser(&user.User); errSave != nil {
+	id, errSave := a.DB.SaveUser(&user.User)
+	if errSave != nil {
 		user.Error = errSave.Error()
 		if match := strings.EqualFold(user.Error, "user's data is not valid"); match {
 			JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
@@ -57,7 +56,7 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, http.StatusInternalServerError, user, user.Error)
 		return
 	}
-
+	user.ID = id
 	JSONResponse(w, http.StatusCreated, user, "successfully created a client")
 }
 
@@ -72,15 +71,15 @@ func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, doesExist := a.DB.UsersMap[id]
+	user, errGet := a.DB.GetUser(id)
 
-	if !doesExist {
-		userResponse.Error = errors.New("the id cannot match any user").Error()
+	if errGet != nil {
+		userResponse.Error = errGet.Error()
 		JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
 		return
 	}
 	userResponse.User = *user
-
+	userResponse.ID = id
 	JSONResponse(w, http.StatusOK, *userResponse, "successfully sent info about the user")
 }
 
@@ -142,8 +141,9 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
-
-	userResponse.User = *a.DB.UsersMap[id]
+	user, _ := a.DB.GetUser(id)
+	userResponse.User = *user
+	userResponse.ID = id
 	JSONResponse(w, http.StatusOK, *userResponse, "successfully took the points from the client")
 }
 
@@ -181,8 +181,9 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
-
-	userResponse.User = *a.DB.UsersMap[id]
+	user, _ := a.DB.GetUser(id)
+	userResponse.User = *user
+	userResponse.ID = id
 	JSONResponse(w, http.StatusOK, *userResponse, "the client successfully funded the points")
 }
 

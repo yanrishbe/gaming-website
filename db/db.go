@@ -28,15 +28,17 @@ func (db *DB) SaveUser(user *entities.User) (int, error) {
 		return 0, errors.New("user's data is not valid")
 	}
 	db.mutex.Lock()
+	defer db.mutex.Unlock()
 	db.UsersCounter++
 	//user.ID = db.UsersCounter
 	user.Balance -= 300
 	db.UsersMap[db.UsersCounter] = user
-	db.mutex.Unlock()
 	return db.UsersCounter, nil
 }
 
 func (db *DB) GetUser(id int) (*entities.User, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
 	user, doesExist := db.UsersMap[id]
 	if !doesExist {
 		return nil, errors.New("the id cannot match any user")
@@ -46,40 +48,37 @@ func (db *DB) GetUser(id int) (*entities.User, error) {
 
 // DeleteUser removes a user from the UsersMap
 func (db *DB) DeleteUser(id int) error {
-	_, doesExist := db.UsersMap[id]
-	if !doesExist {
-		return errors.New("the id cannot match any user")
+	if _, errGet := db.GetUser(id); errGet != nil {
+		return errGet
 	}
 	db.mutex.Lock()
+	defer db.mutex.Unlock()
 	delete(db.UsersMap, id)
-	db.mutex.Unlock()
 	return nil
 }
 
 // UserTake takes the requested amount of points from a user's balance
 func (db *DB) UserTake(id, points int) error {
-	_, doesExist := db.UsersMap[id]
-	if !doesExist {
-		return errors.New("the id cannot match any user")
+	if _, errGet := db.GetUser(id); errGet != nil {
+		return errGet
 	}
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
 	if db.UsersMap[id].Balance < points {
 		return errors.New("not enough balance to execute the request")
 	}
-	db.mutex.Lock()
 	db.UsersMap[id].Balance -= points
-	db.mutex.Unlock()
 	return nil
 }
 
 // UserFund adds the requested amount of points to user's balance
 func (db *DB) UserFund(id, points int) error {
-	_, doesExist := db.UsersMap[id]
-	if !doesExist {
-		return errors.New("the id cannot match any user")
+	if _, errGet := db.GetUser(id); errGet != nil {
+		return errGet
 	}
 	db.mutex.Lock()
+	defer db.mutex.Unlock()
 	db.UsersMap[id].Balance += points
-	db.mutex.Unlock()
 	return nil
 }
 
@@ -89,4 +88,10 @@ func New() *DB {
 		mutex:    &sync.Mutex{},
 		UsersMap: make(map[int]*entities.User),
 	}
+}
+
+func (db *DB) CountUsers() int {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+	return len(db.UsersMap)
 }
