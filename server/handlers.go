@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/yanrishbe/gaming-website/db"
 	"github.com/yanrishbe/gaming-website/entities"
 
@@ -30,6 +32,10 @@ type UserResponse struct {
 type API struct {
 	Router *mux.Router
 	DB     *db.DB
+}
+
+func init() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
