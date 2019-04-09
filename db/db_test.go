@@ -137,29 +137,43 @@ func TestDB_SaveUser(t *testing.T) {
 func TestDB_DataRace(t *testing.T) {
 	r := require.New(t)
 	db := New()
-	for i := 0; i < 100; i++ {
-		go func() {
-			u := entities.User{
-				Name:    "Jana",
-				Balance: 600,
-			}
-			_, errSave := db.SaveUser(&u)
-			r.NoError(errSave)
-		}()
-	}
-	for i := 1; i < 101; i++ {
-		go func() {
-			r.NoError(db.UserTake(1, 1))
-		}()
+	var wg sync.WaitGroup
+	wg.Add(200)
+	f := func(wg *sync.WaitGroup) {
+		for i := 0; i < 100; i++ {
+
+			go func() {
+				u := entities.User{
+					Name:    "Jana",
+					Balance: 600,
+				}
+				_, errSave := db.SaveUser(&u)
+				r.NoError(errSave)
+				wg.Done()
+			}()
+
+		}
 	}
 
-	for i := 1; i < 101; i++ {
-		go func() {
-			r.NoError(db.UserFund(1, 2))
-		}()
+	f(&wg)
+
+	f1 := func(wg *sync.WaitGroup) {
+		for i := 1; i < 101; i++ {
+			go func() {
+				r.NoError(db.UserTake(1, 1))
+			}()
+			wg.Done()
+		}
 	}
+	f1(&wg)
+	//for i := 1; i < 101; i++ {
+	//	go func() {
+	//		r.NoError(db.UserFund(1, 2))
+	//	}()
+	//}
+	wg.Wait()
 	r.Equal(100, db.CountUsers())
 	user, errGet := db.GetUser(1)
 	r.NoError(errGet)
-	r.Equal(400, user.Balance)
+	r.Equal(200, user.Balance)
 }
