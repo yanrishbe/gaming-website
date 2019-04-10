@@ -2,11 +2,13 @@
 package main
 
 import (
+	"github.com/yanrishbe/gaming-website/logger"
 	"github.com/yanrishbe/gaming-website/server"
 )
 
 func main() {
-	api := server.New()
+	log := logger.New("debug")
+	api := server.New(log)
 	api.InitRouter()
 	api.Run(":8080")
 }

@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+
+	"github.com/yanrishbe/gaming-website/logger"
 
 	"github.com/yanrishbe/gaming-website/entities"
 
@@ -25,7 +28,8 @@ func unmarshal(t *testing.T, data []byte, output interface{}) {
 
 func TestAPI_RegisterNewUser(t *testing.T) {
 	r := require.New(t)
-	api := New()
+	log := logger.New("debug")
+	api := New(log)
 	api.InitRouter()
 	var userOne = entities.User{Name: "", Balance: 400}
 	var userOneByte = marshal(t, userOne)
@@ -57,7 +61,8 @@ func TestAPI_RegisterNewUser(t *testing.T) {
 
 func TestAPI_GetUser(t *testing.T) {
 	r := require.New(t)
-	api := New()
+	log := logger.New("debug")
+	api := New(log)
 	api.InitRouter()
 	var userTwo = &entities.User{Name: "userTwo", Balance: 100}
 	api.DB.UsersMap[1] = userTwo
@@ -83,7 +88,8 @@ func TestAPI_GetUser(t *testing.T) {
 
 func TestAPI_DeleteUser(t *testing.T) {
 	r := require.New(t)
-	api := New()
+	log := logger.New("debug")
+	api := New(log)
 	api.InitRouter()
 	var userThree = &entities.User{Name: "userThree", Balance: 500}
 	api.DB.UsersMap[2] = userThree
@@ -107,7 +113,8 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 func TestAPI_TakeUserPoints(t *testing.T) {
 	r := require.New(t)
-	api := New()
+	log := logger.New("debug")
+	api := New(log)
 	api.InitRouter()
 	var userFour = &entities.User{Name: "userFour", Balance: 800}
 	api.DB.UsersMap[2] = userFour
@@ -153,7 +160,8 @@ func TestAPI_TakeUserPoints(t *testing.T) {
 
 func TestAPI_FundUserPoints(t *testing.T) {
 	r := require.New(t)
-	api := New()
+	log := logger.New("debug")
+	api := New(log)
 	api.InitRouter()
 	var userFive = &entities.User{Name: "userFive", Balance: 200}
 	api.DB.UsersMap[2] = userFive
@@ -184,4 +192,48 @@ func TestAPI_FundUserPoints(t *testing.T) {
 	api.Router.ServeHTTP(resp, req)
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
 
+}
+
+func TestAPI_DataRace(t *testing.T) {
+	r := require.New(t)
+	log := logger.New("debug")
+	api := New(log)
+	api.InitRouter()
+	userDR := &entities.User{Name: "User", Balance: 500}
+	userDRByte := marshal(t, userDR)
+	// req := make ([]*http.Request,100)
+	//req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userDRByte))
+
+	var wg sync.WaitGroup
+	wg.Add(100)
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			defer func() {
+				log.Println("worker:", i, "total users", api.DB.CountUsers())
+				wg.Done()
+			}()
+			resp := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userDRByte))
+			api.Router.ServeHTTP(resp, req)
+		}(i)
+	}
+	wg.Wait()
+	r.Equal(100, api.DB.CountUsers())
+	var userDRPoints = RequestPoints{Points: 1}
+	var userDRBytes = marshal(t, userDRPoints)
+	var wg2 sync.WaitGroup
+	wg2.Add(100)
+
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			defer wg2.Done()
+			resp := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/user/1/take", bytes.NewBuffer(userDRBytes))
+			api.Router.ServeHTTP(resp, req)
+		}(i)
+	}
+	wg2.Wait()
+	userDRResult, errGet := api.DB.GetUser(1)
+	r.NoError(errGet)
+	r.Equal(100, userDRResult.Balance)
 }

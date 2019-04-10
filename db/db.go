@@ -36,8 +36,8 @@ func (db *DB) SaveUser(user *entities.User) (int, error) {
 }
 
 func (db *DB) GetUser(id int) (*entities.User, error) {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
 	user, doesExist := db.UsersMap[id]
 	if !doesExist {
 		return nil, errors.New("the id cannot match any user")

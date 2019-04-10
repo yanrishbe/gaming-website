@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/yanrishbe/gaming-website/db"
 	"github.com/yanrishbe/gaming-website/entities"
 
@@ -30,13 +32,14 @@ type UserResponse struct {
 type API struct {
 	Router *mux.Router
 	DB     *db.DB
+	Logrus *logrus.Logger
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 	var user UserResponse
 	if errDecode := json.NewDecoder(r.Body).Decode(&user.User); errDecode != nil {
 		user.Error = errDecode.Error()
-		JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
 		return
 	}
 
@@ -50,14 +53,14 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 	if errSave != nil {
 		user.Error = errSave.Error()
 		if match := strings.EqualFold(user.Error, "user's data is not valid"); match {
-			JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
+			a.JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
 			return
 		}
-		JSONResponse(w, http.StatusInternalServerError, user, user.Error)
+		a.JSONResponse(w, http.StatusInternalServerError, user, user.Error)
 		return
 	}
 	user.ID = id
-	JSONResponse(w, http.StatusCreated, user, "successfully created a client")
+	a.JSONResponse(w, http.StatusCreated, user, "successfully created a client")
 }
 
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +70,7 @@ func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 
 	if errParams != nil {
 		userResponse.Error = errParams.Error()
-		JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
 		return
 	}
 
@@ -75,12 +78,12 @@ func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 
 	if errGet != nil {
 		userResponse.Error = errGet.Error()
-		JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
 		return
 	}
 	userResponse.User = *user
 	userResponse.ID = id
-	JSONResponse(w, http.StatusOK, *userResponse, "successfully sent info about the user")
+	a.JSONResponse(w, http.StatusOK, *userResponse, "successfully sent info about the user")
 }
 
 func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -90,21 +93,21 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	if errParams != nil {
 		userResponse.Error = errParams.Error()
-		JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
 		return
 	}
 
 	if errDelete := a.DB.DeleteUser(id); errDelete != nil {
 		userResponse.Error = errDelete.Error()
 		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
-			JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+			a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
 			return
 		}
-		JSONResponse(w, http.StatusInternalServerError, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusInternalServerError, *userResponse, userResponse.Error)
 		return
 	}
 
-	ResponseNoUser(w, http.StatusOK, "successfully deleted the user")
+	a.ResponseNoUser(w, http.StatusOK, "successfully deleted the user")
 }
 
 func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +117,7 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	if errParams != nil {
 		userResponse.Error = errParams.Error()
-		JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
 		return
 	}
 
@@ -122,7 +125,7 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
 		userResponse.Error = errDecode.Error()
-		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
 
@@ -135,16 +138,19 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 	if errTake := a.DB.UserTake(id, points.Points); errTake != nil {
 		userResponse.Error = errTake.Error()
 		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
-			JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+			a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
 			return
 		}
-		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
-	user, _ := a.DB.GetUser(id)
+	user, errGet := a.DB.GetUser(id)
+	if errGet != nil { //fixme
+		panic(errGet)
+	}
 	userResponse.User = *user
 	userResponse.ID = id
-	JSONResponse(w, http.StatusOK, *userResponse, "successfully took the points from the client")
+	a.JSONResponse(w, http.StatusOK, *userResponse, "successfully took the points from the client")
 }
 
 func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +160,7 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	if errParams != nil {
 		userResponse.Error = errParams.Error()
-		JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
 		return
 	}
 
@@ -162,7 +168,7 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 
 	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
 		userResponse.Error = errDecode.Error()
-		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
 
@@ -175,20 +181,21 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	if errFund := a.DB.UserFund(id, points.Points); errFund != nil {
 		userResponse.Error = errFund.Error()
 		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
-			JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+			a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
 			return
 		}
-		JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
 		return
 	}
 	user, _ := a.DB.GetUser(id)
 	userResponse.User = *user
 	userResponse.ID = id
-	JSONResponse(w, http.StatusOK, *userResponse, "the client successfully funded the points")
+	a.JSONResponse(w, http.StatusOK, *userResponse, "the client successfully funded the points")
 }
 
 // InitRouter registers handlers
 func (a *API) InitRouter() {
+	a.Logrus.SetFormatter(&logrus.JSONFormatter{})
 	a.Router.HandleFunc("/user", a.registerNewUser).Methods(http.MethodPost)
 	a.Router.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 	a.Router.HandleFunc("/user/{id}", a.deleteUser).Methods(http.MethodDelete)
@@ -202,8 +209,8 @@ func (a *API) Run(host string) {
 }
 
 // New initializes an instance of API struct
-func New() *API {
+func New(log *logrus.Logger) *API {
 	return &API{
-		Router: mux.NewRouter(), DB: db.New(),
+		Router: mux.NewRouter(), DB: db.New(), Logrus: log,
 	}
 }
