@@ -154,7 +154,7 @@ func TestDB_DataRace(t *testing.T) {
 	}
 	wg.Wait()
 	var wg2 sync.WaitGroup
-	wg2.Add(100)
+	wg2.Add(200)
 	for i := 1; i < 101; i++ {
 		go func() {
 			defer wg2.Done()
@@ -162,16 +162,13 @@ func TestDB_DataRace(t *testing.T) {
 		}()
 
 	}
-	wg2.Wait()
-	var wg3 sync.WaitGroup
-	wg3.Add(100)
 	for i := 1; i < 101; i++ {
 		go func() {
-			defer wg3.Done()
+			defer wg2.Done()
 			r.NoError(db.UserFund(1, 2))
 		}()
 	}
-	wg3.Wait()
+	wg2.Wait()
 	r.Equal(100, db.CountUsers())
 	user, errGet := db.GetUser(1)
 	r.NoError(errGet)
