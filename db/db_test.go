@@ -138,42 +138,42 @@ func TestDB_DataRace(t *testing.T) {
 	r := require.New(t)
 	db := New()
 	var wg sync.WaitGroup
-	wg.Add(200)
-	f := func(wg *sync.WaitGroup) {
-		for i := 0; i < 100; i++ {
+	wg.Add(100)
+	for i := 0; i < 100; i++ {
 
-			go func() {
-				u := entities.User{
-					Name:    "Jana",
-					Balance: 600,
-				}
-				_, errSave := db.SaveUser(&u)
-				r.NoError(errSave)
-				wg.Done()
-			}()
+		go func() {
+			defer wg.Done()
+			u := entities.User{
+				Name:    "Jana",
+				Balance: 600,
+			}
+			_, errSave := db.SaveUser(&u)
+			r.NoError(errSave)
+		}()
 
-		}
 	}
-
-	f(&wg)
-
-	f1 := func(wg *sync.WaitGroup) {
-		for i := 1; i < 101; i++ {
-			go func() {
-				r.NoError(db.UserTake(1, 1))
-			}()
-			wg.Done()
-		}
-	}
-	f1(&wg)
-	//for i := 1; i < 101; i++ {
-	//	go func() {
-	//		r.NoError(db.UserFund(1, 2))
-	//	}()
-	//}
 	wg.Wait()
+	var wg2 sync.WaitGroup
+	wg2.Add(100)
+	for i := 1; i < 101; i++ {
+		go func() {
+			defer wg2.Done()
+			r.NoError(db.UserTake(1, 1))
+		}()
+
+	}
+	wg2.Wait()
+	var wg3 sync.WaitGroup
+	wg3.Add(100)
+	for i := 1; i < 101; i++ {
+		go func() {
+			defer wg3.Done()
+			r.NoError(db.UserFund(1, 2))
+		}()
+	}
+	wg3.Wait()
 	r.Equal(100, db.CountUsers())
 	user, errGet := db.GetUser(1)
 	r.NoError(errGet)
-	r.Equal(200, user.Balance)
+	r.Equal(400, user.Balance)
 }
