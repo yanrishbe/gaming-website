@@ -27,31 +27,34 @@ func TestNew(t *testing.T) {
 func TestDB_UserFund(t *testing.T) {
 	r := require.New(t)
 	db := New()
-	r.Error(db.UserFund(100, 1))
+	_ , err := db.UserFund(100, 1)
+	r.Error(err)
 	u := entities.User{
 		Name:    "Jana",
 		Balance: 300,
 	}
-	_, errSave := db.SaveUser(&u)
-	r.NoError(errSave)
+	_, err = db.SaveUser(u)
+	r.NoError(err)
 	var wg sync.WaitGroup
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
-		go func(wg *sync.WaitGroup) {
-			r.NoError(db.UserFund(1, 1))
+		go func() {
+			_ , err := db.UserFund(1, 1)
+			r.NoError(err)
 			wg.Done()
-		}(&wg)
+		}()
 	}
 	wg.Wait()
-	user, errGet := db.GetUser(1)
-	r.NoError(errGet)
-	r.Equal(100, user.Balance)
+	us, err := db.GetUser(1)
+	r.NoError(err)
+	r.Equal(100, us.Balance)
 }
 
 func TestDB_UserTake(t *testing.T) {
 	r := require.New(t)
 	db := New()
-	r.Error(db.UserTake(100, 1))
+	_, err := db.UserTake(100, 1)
+	r.Error(err)
 
 	u, y := entities.User{
 		Name:    "Jana",
@@ -60,33 +63,35 @@ func TestDB_UserTake(t *testing.T) {
 		Name:    "M",
 		Balance: 400,
 	}
-	_, errSave := db.SaveUser(&u)
-	r.NoError(errSave)
-	_, errSave = db.SaveUser(&y)
-	r.NoError(errSave)
+	_, err = db.SaveUser(u)
+	r.NoError(err)
+	_, err = db.SaveUser(y)
+	r.NoError(err)
 	var wg sync.WaitGroup
 	wg.Add(200)
 	for i := 0; i < 100; i++ {
-		go func(wg *sync.WaitGroup) {
-			r.Error(db.UserTake(2, 400))
+		go func() {
+			_, err := db.UserTake(2, 400)
+			r.Error(err)
 			wg.Done()
-		}(&wg)
+		}()
 	}
 
 	for i := 0; i < 100; i++ {
-		go func(wg *sync.WaitGroup) {
-			r.NoError(db.UserTake(1, 1))
+		go func() {
+			_, err := db.UserTake(1, 1)
+			r.NoError(err)
 			wg.Done()
-		}(&wg)
+		}()
 
 	}
 	wg.Wait()
-	user, errGet := db.GetUser(1)
-	r.NoError(errGet)
-	r.Equal(200, user.Balance)
-	user, errGet = db.GetUser(2)
-	r.NoError(errGet)
-	r.Equal(100, user.Balance)
+	us, err := db.GetUser(1)
+	r.NoError(err)
+	r.Equal(200, us.Balance)
+	us, err = db.GetUser(2)
+	r.NoError(err)
+	r.Equal(100, us.Balance)
 }
 
 func TestDB_DeleteUser(t *testing.T) {
@@ -97,8 +102,8 @@ func TestDB_DeleteUser(t *testing.T) {
 		Name:    "Jana",
 		Balance: 300,
 	}
-	_, errSave := db.SaveUser(&u)
-	r.NoError(errSave)
+	_, err := db.SaveUser(u)
+	r.NoError(err)
 	r.NoError(db.DeleteUser(1))
 }
 
@@ -108,30 +113,30 @@ func TestDB_SaveUser(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
-		go func(wg *sync.WaitGroup) {
+		go func() {
 			u := entities.User{
 				Name:    "Jana",
 				Balance: 600,
 			}
-			_, errSave := db.SaveUser(&u)
-			r.NoError(errSave)
+			_, err := db.SaveUser(u)
+			r.NoError(err)
 			wg.Done()
-		}(&wg)
+		}()
 	}
 	wg.Wait()
 	r.Equal(100, db.CountUsers())
 
 	for i := 1; i < 101; i++ {
-		user, errGet := db.GetUser(i)
-		r.NoError(errGet)
-		r.Equal(300, user.Balance)
+		us, err := db.GetUser(i)
+		r.NoError(err)
+		r.Equal(300, us.Balance)
 	}
 	u := entities.User{
 		Name:    "",
 		Balance: 600,
 	}
-	_, errSave := db.SaveUser(&u)
-	r.Error(errSave)
+	_, err:= db.SaveUser(u)
+	r.Error(err)
 }
 
 func TestDB_DataRace(t *testing.T) {
@@ -147,8 +152,8 @@ func TestDB_DataRace(t *testing.T) {
 				Name:    "Jana",
 				Balance: 600,
 			}
-			_, errSave := db.SaveUser(&u)
-			r.NoError(errSave)
+			_, err := db.SaveUser(u)
+			r.NoError(err)
 		}()
 
 	}
@@ -158,19 +163,21 @@ func TestDB_DataRace(t *testing.T) {
 	for i := 1; i < 101; i++ {
 		go func() {
 			defer wg2.Done()
-			r.NoError(db.UserTake(1, 1))
+			_, err := db.UserTake(1, 1)
+			r.NoError(err)
 		}()
 
 	}
 	for i := 1; i < 101; i++ {
 		go func() {
 			defer wg2.Done()
-			r.NoError(db.UserFund(1, 2))
+			_, err := db.UserFund(1, 2)
+			r.NoError(err)
 		}()
 	}
 	wg2.Wait()
 	r.Equal(100, db.CountUsers())
-	user, errGet := db.GetUser(1)
-	r.NoError(errGet)
-	r.Equal(400, user.Balance)
+	us, err := db.GetUser(1)
+	r.NoError(err)
+	r.Equal(400, us.Balance)
 }
