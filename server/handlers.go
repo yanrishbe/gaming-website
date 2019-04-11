@@ -3,29 +3,26 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/yanrishbe/gaming-website/db"
-	"github.com/yanrishbe/gaming-website/entities"
+	"github.com/yanrishbe/gaming-website/entity"
 
 	"github.com/gorilla/mux"
 )
 
-// RequestPoints represents a struct to send "take" and "fund" requests to the gaming website
-type RequestPoints struct {
+// ReqPoints represents a struct to send "take" and "fund" requests to the gaming website
+type ReqPoints struct {
 	Points int `json:"points"`
 }
 
-// UserResponse struct is a struct used for sending an answer to a client
-type UserResponse struct {
-	ID            int `json:"id"`
-	entities.User `json:"user"`
-	Error         string `json:"error"`
+// UserResp struct is a struct used for sending an answer to a client
+type UserResp struct {
+	entity.User `json:"user"`
+	Error       string `json:"error"`
 }
 
 // API struct is used to initialize a router and a database
@@ -36,74 +33,64 @@ type API struct {
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
-	var user UserResponse
-	if errDecode := json.NewDecoder(r.Body).Decode(&user.User); errDecode != nil {
-		user.Error = errDecode.Error()
-		a.JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
+	us := UserResp{}
+	err := json.NewDecoder(r.Body).Decode(&us.User)
+	if err != nil {
+		us.Error = err.Error()
+		a.JSONResponse(w, http.StatusUnprocessableEntity, us, us.Error)
 		return
 	}
-
-	defer func() {
-		if errClose := r.Body.Close(); errClose != nil {
-			log.Println(errClose)
-		}
-	}()
-
-	id, errSave := a.DB.SaveUser(&user.User)
-	if errSave != nil {
-		user.Error = errSave.Error()
-		if match := strings.EqualFold(user.Error, "user's data is not valid"); match {
-			a.JSONResponse(w, http.StatusUnprocessableEntity, user, user.Error)
+	us.User, err = a.DB.SaveUser(us.User)
+	if err != nil {
+		us.Error = err.Error()
+		if us.Error == "user's data is not valid" {
+			a.JSONResponse(w, http.StatusUnprocessableEntity, us, us.Error)
 			return
 		}
-		a.JSONResponse(w, http.StatusInternalServerError, user, user.Error)
+		a.JSONResponse(w, http.StatusInternalServerError, us, us.Error)
 		return
 	}
-	user.ID = id
-	a.JSONResponse(w, http.StatusCreated, user, "successfully created a client")
+	a.JSONResponse(w, http.StatusCreated, us, "successfully created a client")
 }
 
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
+	ur := UserResp{}
 	params := mux.Vars(r)
-	id, errParams := strconv.Atoi(params["id"])
-	var userResponse = new(UserResponse)
-
-	if errParams != nil {
-		userResponse.Error = errParams.Error()
-		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
+	us, err := a.DB.GetUser(id)
 
-	user, errGet := a.DB.GetUser(id)
-
-	if errGet != nil {
-		userResponse.Error = errGet.Error()
-		a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
 		return
 	}
-	userResponse.User = *user
-	userResponse.ID = id
-	a.JSONResponse(w, http.StatusOK, *userResponse, "successfully sent info about the user")
+	ur.User = us
+	a.JSONResponse(w, http.StatusOK, ur, "successfully sent info about the user")
 }
 
 func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
+	ur := UserResp{}
 	params := mux.Vars(r)
-	id, errParams := strconv.Atoi(params["id"])
-	var userResponse = new(UserResponse)
-
-	if errParams != nil {
-		userResponse.Error = errParams.Error()
-		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
 
-	if errDelete := a.DB.DeleteUser(id); errDelete != nil {
-		userResponse.Error = errDelete.Error()
-		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
-			a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+	err = a.DB.DeleteUser(id)
+	if err != nil {
+		ur.Error = err.Error()
+		if ur.Error == "the id cannot match any user" {
+			a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
 			return
 		}
-		a.JSONResponse(w, http.StatusInternalServerError, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusInternalServerError, ur, ur.Error)
 		return
 	}
 
@@ -111,86 +98,65 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
+	ur := UserResp{}
 	params := mux.Vars(r)
-	id, errParams := strconv.Atoi(params["id"])
-	var userResponse = new(UserResponse)
-
-	if errParams != nil {
-		userResponse.Error = errParams.Error()
-		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
 
-	var points RequestPoints
+	points := ReqPoints{}
 
-	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
-		userResponse.Error = errDecode.Error()
-		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+	err = json.NewDecoder(r.Body).Decode(&points)
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
 		return
 	}
 
-	defer func() {
-		if errClose := r.Body.Close(); errClose != nil {
-			log.Println(errClose)
-		}
-	}()
-
-	if errTake := a.DB.UserTake(id, points.Points); errTake != nil {
-		userResponse.Error = errTake.Error()
-		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
-			a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+	ur.User, err = a.DB.UserTake(id, points.Points)
+	if err != nil {
+		ur.Error = err.Error()
+		if ur.Error == "the id cannot match any user" {
+			a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
 			return
 		}
-		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
 		return
 	}
-	user, errGet := a.DB.GetUser(id)
-	if errGet != nil { //fixme
-		panic(errGet)
-	}
-	userResponse.User = *user
-	userResponse.ID = id
-	a.JSONResponse(w, http.StatusOK, *userResponse, "successfully took the points from the client")
+	a.JSONResponse(w, http.StatusOK, ur, "successfully took the points from the client")
 }
 
 func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
+	ur := UserResp{}
 	params := mux.Vars(r)
-	id, errParams := strconv.Atoi(params["id"])
-	var userResponse = new(UserResponse)
-
-	if errParams != nil {
-		userResponse.Error = errParams.Error()
-		a.JSONResponse(w, http.StatusBadRequest, *userResponse, userResponse.Error)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
+	points := ReqPoints{}
 
-	var points RequestPoints
-
-	if errDecode := json.NewDecoder(r.Body).Decode(&points); errDecode != nil {
-		userResponse.Error = errDecode.Error()
-		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+	err = json.NewDecoder(r.Body).Decode(&points)
+	if err != nil {
+		ur.Error = err.Error()
+		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
 		return
 	}
-
-	defer func() {
-		if errClose := r.Body.Close(); errClose != nil {
-			log.Println(errClose)
-		}
-	}()
-
-	if errFund := a.DB.UserFund(id, points.Points); errFund != nil {
-		userResponse.Error = errFund.Error()
-		if match := strings.EqualFold(userResponse.Error, "the id cannot match any user"); match {
-			a.JSONResponse(w, http.StatusNotFound, *userResponse, userResponse.Error)
+	ur.User, err = a.DB.UserFund(id, points.Points)
+	if err != nil {
+		ur.Error = err.Error()
+		if ur.Error == "the id cannot match any user" {
+			a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
 			return
 		}
-		a.JSONResponse(w, http.StatusUnprocessableEntity, *userResponse, userResponse.Error)
+		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
 		return
 	}
-	user, _ := a.DB.GetUser(id)
-	userResponse.User = *user
-	userResponse.ID = id
-	a.JSONResponse(w, http.StatusOK, *userResponse, "the client successfully funded the points")
+	a.JSONResponse(w, http.StatusOK, ur, "the client successfully funded the points")
 }
 
 // InitRouter registers handlers
@@ -203,14 +169,9 @@ func (a *API) InitRouter() {
 	a.Router.HandleFunc("/user/{id}/fund", a.fundUserPoints).Methods(http.MethodPost)
 }
 
-// Run the app on it's router
-func (a *API) Run(host string) {
-	log.Fatal(http.ListenAndServe(host, a.Router))
-}
-
 // New initializes an instance of API struct
-func New(log *logrus.Logger) *API {
+func New() *API {
 	return &API{
-		Router: mux.NewRouter(), DB: db.New(), Logrus: log,
+		Router: mux.NewRouter(), DB: db.New(), Logrus: logrus.New(),
 	}
 }
