@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/yanrishbe/gaming-website/db"
 	"github.com/yanrishbe/gaming-website/entity"
 
@@ -22,14 +20,13 @@ type ReqPoints struct {
 // UserResp struct is a struct used for sending an answer to a client
 type UserResp struct {
 	entity.User `json:"user"`
-	Error       entity.Error `json:"error"`
+	Error       string `json:"error"` //entity.Error
 }
 
 // API struct is used to initialize a router and a database
 type API struct {
 	Router *mux.Router
 	DB     *db.DB
-	Logrus *logrus.Logger
 }
 
 func readID(r *http.Request) (int, error) {
@@ -156,7 +153,6 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 
 // InitRouter registers handlers
 func (a *API) InitRouter() {
-	a.Logrus.SetFormatter(&logrus.JSONFormatter{})
 	a.Router.HandleFunc("/user", a.registerNewUser).Methods(http.MethodPost)
 	a.Router.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 	a.Router.HandleFunc("/user/{id}", a.deleteUser).Methods(http.MethodDelete)
@@ -167,6 +163,6 @@ func (a *API) InitRouter() {
 // New initializes an instance of API struct
 func New() *API {
 	return &API{
-		Router: mux.NewRouter(), DB: db.New(), Logrus: logrus.New(),
+		Router: mux.NewRouter(), DB: db.New(),
 	}
 }

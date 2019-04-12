@@ -10,8 +10,9 @@ import (
 )
 
 func main() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetLevel(logrus.DebugLevel)
 	api := server.New()
-	api.Logrus.SetFormatter(&logrus.JSONFormatter{})
 	api.InitRouter()
 	log.Fatal(http.ListenAndServe(":8080", api.Router))
 }
