@@ -22,7 +22,7 @@ type ReqPoints struct {
 // UserResp struct is a struct used for sending an answer to a client
 type UserResp struct {
 	entity.User `json:"user"`
-	Error       string `json:"error"`
+	Error       entity.Error `json:"error"`
 }
 
 // API struct is used to initialize a router and a database
@@ -30,6 +30,12 @@ type API struct {
 	Router *mux.Router
 	DB     *db.DB
 	Logrus *logrus.Logger
+}
+
+func readID(r *http.Request) (int, error) {
+	strID := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(strID)
+	return id, err
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
@@ -55,15 +61,13 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := readID(r)
 	if err != nil {
 		ur.Error = err.Error()
 		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
 	us, err := a.DB.GetUser(id)
-
 	if err != nil {
 		ur.Error = err.Error()
 		a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
@@ -75,14 +79,12 @@ func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := readID(r)
 	if err != nil {
 		ur.Error = err.Error()
 		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
-
 	err = a.DB.DeleteUser(id)
 	if err != nil {
 		ur.Error = err.Error()
@@ -93,29 +95,24 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 		a.JSONResponse(w, http.StatusInternalServerError, ur, ur.Error)
 		return
 	}
-
 	a.ResponseNoUser(w, http.StatusOK, "successfully deleted the user")
 }
 
 func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := readID(r)
 	if err != nil {
 		ur.Error = err.Error()
 		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
-
 	points := ReqPoints{}
-
 	err = json.NewDecoder(r.Body).Decode(&points)
 	if err != nil {
 		ur.Error = err.Error()
 		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
 		return
 	}
-
 	ur.User, err = a.DB.UserTake(id, points.Points)
 	if err != nil {
 		ur.Error = err.Error()
@@ -131,15 +128,13 @@ func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := readID(r)
 	if err != nil {
 		ur.Error = err.Error()
 		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
 		return
 	}
 	points := ReqPoints{}
-
 	err = json.NewDecoder(r.Body).Decode(&points)
 	if err != nil {
 		ur.Error = err.Error()

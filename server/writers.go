@@ -22,7 +22,7 @@ func (a *API) JSONResponse(w http.ResponseWriter, code int, user UserResp, messa
 			"code":    code,
 			"user":    user,
 			"message": message,
-		}).Debug(code, user, message)
+		}).Debug()
 		return
 	}
 }
@@ -40,4 +40,20 @@ func (a *API) ResponseNoUser(w http.ResponseWriter, code int, message string) {
 			"message": message,
 		}).Debug()
 	}
+}
+
+func (a *API) RespErr(w http.ResponseWriter, us UserResp, err error) {
+	us.Error = err.Error()
+	switch us.Error {
+	case "user's data is not valid":
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	case "the id cannot match any user":
+		w.WriteHeader(http.StatusNotFound)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err = json.NewEncoder(w).Encode(us)
+	if err != nil {
+		return
+	}
+
 }
