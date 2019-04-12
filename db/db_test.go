@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/yanrishbe/gaming-website/entities"
+	"github.com/yanrishbe/gaming-website/entity"
 )
 
 func TestCanRegister(t *testing.T) {
 	r := require.New(t)
-	var user = []entities.User{
+	var user = []entity.User{
 		{Name: ""},
 		{Name: "Y", Balance: 300},
 		{Name: "N", Balance: 0},
@@ -29,7 +29,7 @@ func TestDB_UserFund(t *testing.T) {
 	db := New()
 	_ , err := db.UserFund(100, 1)
 	r.Error(err)
-	u := entities.User{
+	u := entity.User{
 		Name:    "Jana",
 		Balance: 300,
 	}
@@ -56,10 +56,10 @@ func TestDB_UserTake(t *testing.T) {
 	_, err := db.UserTake(100, 1)
 	r.Error(err)
 
-	u, y := entities.User{
+	u, y := entity.User{
 		Name:    "Jana",
 		Balance: 600,
-	}, entities.User{
+	}, entity.User{
 		Name:    "M",
 		Balance: 400,
 	}
@@ -98,7 +98,7 @@ func TestDB_DeleteUser(t *testing.T) {
 	r := require.New(t)
 	db := New()
 	r.Error(db.DeleteUser(100))
-	u := entities.User{
+	u := entity.User{
 		Name:    "Jana",
 		Balance: 300,
 	}
@@ -114,7 +114,7 @@ func TestDB_SaveUser(t *testing.T) {
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
 		go func() {
-			u := entities.User{
+			u := entity.User{
 				Name:    "Jana",
 				Balance: 600,
 			}
@@ -131,7 +131,7 @@ func TestDB_SaveUser(t *testing.T) {
 		r.NoError(err)
 		r.Equal(300, us.Balance)
 	}
-	u := entities.User{
+	u := entity.User{
 		Name:    "",
 		Balance: 600,
 	}
@@ -148,7 +148,7 @@ func TestDB_DataRace(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			u := entities.User{
+			u := entity.User{
 				Name:    "Jana",
 				Balance: 600,
 			}

@@ -5,17 +5,17 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/yanrishbe/gaming-website/entities"
+	"github.com/yanrishbe/gaming-website/entity"
 )
 
 // DB struct stores users' data in UsersMap
 type DB struct {
 	mutex        *sync.RWMutex
-	UsersMap     map[int]entities.User
+	UsersMap     map[int]entity.User
 	UsersCounter int
 }
 
-func canRegister(user entities.User) bool {
+func canRegister(user entity.User) bool {
 	if user.Name == "" || user.Balance < 300 {
 		return false
 	}
@@ -23,7 +23,7 @@ func canRegister(user entities.User) bool {
 }
 
 // SaveUser registers a new user
-func (db *DB) SaveUser(usr entities.User) (entities.User, error) {
+func (db *DB) SaveUser(usr entity.User) (entity.User, error) {
 	us := usr
 	if !canRegister(us) {
 		return us, errors.New("user's data is not valid")
@@ -37,7 +37,7 @@ func (db *DB) SaveUser(usr entities.User) (entities.User, error) {
 	return us, nil
 }
 
-func (db *DB) GetUser(id int) (entities.User, error) {
+func (db *DB) GetUser(id int) (entity.User, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 	us, doesExist := db.UsersMap[id]
@@ -60,7 +60,7 @@ func (db *DB) DeleteUser(id int) error {
 }
 
 // UserTake takes the requested amount of points from a user's balance
-func (db *DB) UserTake(id, points int) (entities.User, error) {
+func (db *DB) UserTake(id, points int) (entity.User, error) {
 	us, err := db.GetUser(id)
 	if err != nil {
 		return us, err
@@ -76,7 +76,7 @@ func (db *DB) UserTake(id, points int) (entities.User, error) {
 }
 
 // UserFund adds the requested amount of points to user's balance
-func (db *DB) UserFund(id, points int) (entities.User, error) {
+func (db *DB) UserFund(id, points int) (entity.User, error) {
 	us, err := db.GetUser(id)
 	if err != nil {
 		return us, err
@@ -92,7 +92,7 @@ func (db *DB) UserFund(id, points int) (entities.User, error) {
 func New() *DB {
 	return &DB{
 		mutex:    &sync.RWMutex{},
-		UsersMap: make(map[int]entities.User),
+		UsersMap: make(map[int]entity.User),
 	}
 }
 

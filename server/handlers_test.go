@@ -10,7 +10,7 @@ import (
 
 	"github.com/yanrishbe/gaming-website/logger"
 
-	"github.com/yanrishbe/gaming-website/entities"
+	"github.com/yanrishbe/gaming-website/entity"
 
 	"github.com/stretchr/testify/require"
 )
@@ -31,15 +31,15 @@ func TestAPI_RegisterNewUser(t *testing.T) {
 	log := logger.New("debug")
 	api := New(log)
 	api.InitRouter()
-	var userOne = entities.User{Name: "", Balance: 400}
+	var userOne = entity.User{Name: "", Balance: 400}
 	var userOneByte = marshal(t, userOne)
 	req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userOneByte))
 	resp := httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
-	var userOneResponse = &UserResponse{}
+	var userOneResponse = &UserResp{}
 	unmarshal(t, resp.Body.Bytes(), userOneResponse)
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
-	var userOneExpected = &UserResponse{ID: 0, User: entities.User{Name: "", Balance: 400}, Error: "user's data is not valid"}
+	var userOneExpected = &UserResp{ID: 0, User: entity.User{Name: "", Balance: 400}, Error: "user's data is not valid"}
 	r.Exactly(userOneExpected, userOneResponse)
 
 	var notUser = "Not a user"
@@ -48,13 +48,13 @@ func TestAPI_RegisterNewUser(t *testing.T) {
 	api.Router.ServeHTTP(resp, req)
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
 
-	userOne = entities.User{Name: "userOne", Balance: 400}
+	userOne = entity.User{Name: "userOne", Balance: 400}
 	userOneByte = marshal(t, userOne)
 	req = httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userOneByte))
 	resp = httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
 	unmarshal(t, resp.Body.Bytes(), userOneResponse)
-	userOneExpected = &UserResponse{ID: 1, User: entities.User{Name: "userOne", Balance: 100}, Error: ""}
+	userOneExpected = &UserResp{ID: 1, User: entity.User{Name: "userOne", Balance: 100}, Error: ""}
 	r.EqualValues(http.StatusCreated, resp.Code)
 	r.Exactly(userOneExpected, userOneResponse)
 }
@@ -64,15 +64,15 @@ func TestAPI_GetUser(t *testing.T) {
 	log := logger.New("debug")
 	api := New(log)
 	api.InitRouter()
-	var userTwo = &entities.User{Name: "userTwo", Balance: 100}
+	var userTwo = &entity.User{Name: "userTwo", Balance: 100}
 	api.DB.UsersMap[1] = userTwo
 	req := httptest.NewRequest(http.MethodGet, "/user/1", nil)
 	resp := httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
-	var userTwoResponse = &UserResponse{}
+	var userTwoResponse = &UserResp{}
 	unmarshal(t, resp.Body.Bytes(), userTwoResponse)
 	r.EqualValues(http.StatusOK, resp.Code)
-	var userTwoExpected = &UserResponse{ID: 1, User: entities.User{Name: "userTwo", Balance: 100}, Error: ""}
+	var userTwoExpected = &UserResp{ID: 1, User: entity.User{Name: "userTwo", Balance: 100}, Error: ""}
 	r.Exactly(userTwoExpected, userTwoResponse)
 
 	req = httptest.NewRequest(http.MethodGet, "/user/str", nil)
@@ -91,7 +91,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 	log := logger.New("debug")
 	api := New(log)
 	api.InitRouter()
-	var userThree = &entities.User{Name: "userThree", Balance: 500}
+	var userThree = &entity.User{Name: "userThree", Balance: 500}
 	api.DB.UsersMap[2] = userThree
 	req := httptest.NewRequest(http.MethodDelete, "/user/2", nil)
 	resp := httptest.NewRecorder()
@@ -116,17 +116,17 @@ func TestAPI_TakeUserPoints(t *testing.T) {
 	log := logger.New("debug")
 	api := New(log)
 	api.InitRouter()
-	var userFour = &entities.User{Name: "userFour", Balance: 800}
+	var userFour = &entity.User{Name: "userFour", Balance: 800}
 	api.DB.UsersMap[2] = userFour
-	var userFourPoints = RequestPoints{Points: 200}
+	var userFourPoints = ReqPoints{Points: 200}
 	var userFourPointsBytes = marshal(t, userFourPoints)
 	req := httptest.NewRequest(http.MethodPost, "/user/2/take", bytes.NewBuffer(userFourPointsBytes))
 	resp := httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
-	var userFourResponse = &UserResponse{}
+	var userFourResponse = &UserResp{}
 	unmarshal(t, resp.Body.Bytes(), userFourResponse)
 	r.EqualValues(http.StatusOK, resp.Code)
-	var userFourExpected = &UserResponse{ID: 2, User: entities.User{Name: "userFour", Balance: 600}, Error: ""}
+	var userFourExpected = &UserResp{ID: 2, User: entity.User{Name: "userFour", Balance: 600}, Error: ""}
 	r.Exactly(userFourExpected, userFourResponse)
 
 	req = httptest.NewRequest(http.MethodPost, "/user/str/take", bytes.NewBuffer(userFourPointsBytes))
@@ -145,14 +145,14 @@ func TestAPI_TakeUserPoints(t *testing.T) {
 	api.Router.ServeHTTP(resp, req)
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
 
-	userFourPoints = RequestPoints{Points: 700}
+	userFourPoints = ReqPoints{Points: 700}
 	userFourPointsBytes = marshal(t, userFourPoints)
 	req = httptest.NewRequest(http.MethodPost, "/user/2/take", bytes.NewBuffer(userFourPointsBytes))
 	resp = httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
 	unmarshal(t, resp.Body.Bytes(), userFourResponse)
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
-	userFourExpected = &UserResponse{ID: 0, User: entities.User{Name: "", Balance: 0},
+	userFourExpected = &UserResp{ID: 0, User: entity.User{Name: "", Balance: 0},
 		Error: "not enough balance to execute the request"}
 	r.Exactly(userFourExpected, userFourResponse)
 
@@ -163,17 +163,17 @@ func TestAPI_FundUserPoints(t *testing.T) {
 	log := logger.New("debug")
 	api := New(log)
 	api.InitRouter()
-	var userFive = &entities.User{Name: "userFive", Balance: 200}
+	var userFive = &entity.User{Name: "userFive", Balance: 200}
 	api.DB.UsersMap[2] = userFive
-	var userFivePoints = RequestPoints{Points: 400}
+	var userFivePoints = ReqPoints{Points: 400}
 	var userFivePointsBytes = marshal(t, userFivePoints)
 	req := httptest.NewRequest(http.MethodPost, "/user/2/fund", bytes.NewBuffer(userFivePointsBytes))
 	resp := httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
-	var userFiveResponse = &UserResponse{}
+	var userFiveResponse = &UserResp{}
 	unmarshal(t, resp.Body.Bytes(), userFiveResponse)
 	r.EqualValues(http.StatusOK, resp.Code)
-	var userFiveExpected = &UserResponse{ID: 2, User: entities.User{Name: "userFive", Balance: 600}, Error: ""}
+	var userFiveExpected = &UserResp{ID: 2, User: entity.User{Name: "userFive", Balance: 600}, Error: ""}
 	r.Exactly(userFiveExpected, userFiveResponse)
 
 	req = httptest.NewRequest(http.MethodPost, "/user/str/fund", bytes.NewBuffer(userFivePointsBytes))
@@ -199,7 +199,7 @@ func TestAPI_DataRace(t *testing.T) {
 	log := logger.New("debug")
 	api := New(log)
 	api.InitRouter()
-	userDR := &entities.User{Name: "User", Balance: 500}
+	userDR := &entity.User{Name: "User", Balance: 500}
 	userDRByte := marshal(t, userDR)
 	// req := make ([]*http.Request,100)
 	//req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userDRByte))
@@ -219,7 +219,7 @@ func TestAPI_DataRace(t *testing.T) {
 	}
 	wg.Wait()
 	r.Equal(100, api.DB.CountUsers())
-	var userDRPoints = RequestPoints{Points: 1}
+	var userDRPoints = ReqPoints{Points: 1}
 	var userDRBytes = marshal(t, userDRPoints)
 	var wg2 sync.WaitGroup
 	wg2.Add(100)

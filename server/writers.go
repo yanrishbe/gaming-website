@@ -8,8 +8,7 @@ import (
 )
 
 // JSONResponse encodes user's data for a client
-func (a *API) JSONResponse(w http.ResponseWriter, code int, user UserResponse, message string) {
-	//a.Logrus.Debug(message)
+func (a *API) JSONResponse(w http.ResponseWriter, code int, user UserResp, message string) {
 	a.Logrus.WithFields(log.Fields{
 		"code":    code,
 		"user":    user,
