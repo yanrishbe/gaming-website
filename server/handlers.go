@@ -20,7 +20,7 @@ type ReqPoints struct {
 // UserResp struct is a struct used for sending an answer to a client
 type UserResp struct {
 	entity.User `json:"user"`
-	Error       string `json:"error"` //entity.Error
+	Error       entity.Error `json:"error"` //string
 }
 
 // API struct is used to initialize a router and a database
@@ -32,123 +32,110 @@ type API struct {
 func readID(r *http.Request) (int, error) {
 	strID := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strID)
-	return id, err
+	if err != nil {
+		return 0, entity.InvIDErr(err)
+	}
+	return id, nil
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
-	us := UserResp{}
-	err := json.NewDecoder(r.Body).Decode(&us.User)
+	ur := UserResp{}
+	err := json.NewDecoder(r.Body).Decode(&ur.User)
 	if err != nil {
-		us.Error = err.Error()
-		a.JSONResponse(w, http.StatusUnprocessableEntity, us, us.Error)
+		ur.Error = entity.DecodeErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
-	us.User, err = a.DB.SaveUser(us.User)
+	ur.User, err = a.DB.SaveUser(ur.User)
 	if err != nil {
-		us.Error = err.Error()
-		if us.Error == "user's data is not valid" {
-			a.JSONResponse(w, http.StatusUnprocessableEntity, us, us.Error)
-			return
-		}
-		a.JSONResponse(w, http.StatusInternalServerError, us, us.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
-	a.JSONResponse(w, http.StatusCreated, us, "successfully created a client")
+	a.JSONResponse(w, ur)
 }
 
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	us, err := a.DB.GetUser(id)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	ur.User = us
-	a.JSONResponse(w, http.StatusOK, ur, "successfully sent info about the user")
+	a.JSONResponse(w, ur)
 }
 
 func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	err = a.DB.DeleteUser(id)
 	if err != nil {
-		ur.Error = err.Error()
-		if ur.Error == "the id cannot match any user" {
-			a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
-			return
-		}
-		a.JSONResponse(w, http.StatusInternalServerError, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
-	a.ResponseNoUser(w, http.StatusOK, "successfully deleted the user")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	points := ReqPoints{}
 	err = json.NewDecoder(r.Body).Decode(&points)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
+		ur.Error = entity.DecodeErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	ur.User, err = a.DB.UserTake(id, points.Points)
 	if err != nil {
-		ur.Error = err.Error()
-		if ur.Error == "the id cannot match any user" {
-			a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
-			return
-		}
-		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
-	a.JSONResponse(w, http.StatusOK, ur, "successfully took the points from the client")
+	a.JSONResponse(w, ur)
 }
 
 func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusBadRequest, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	points := ReqPoints{}
 	err = json.NewDecoder(r.Body).Decode(&points)
 	if err != nil {
-		ur.Error = err.Error()
-		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
+		ur.Error = entity.DecodeErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
 	ur.User, err = a.DB.UserFund(id, points.Points)
 	if err != nil {
-		ur.Error = err.Error()
-		if ur.Error == "the id cannot match any user" {
-			a.JSONResponse(w, http.StatusNotFound, ur, ur.Error)
-			return
-		}
-		a.JSONResponse(w, http.StatusUnprocessableEntity, ur, ur.Error)
+		ur.Error = entity.HandlerErr(err)
+		a.JSONResponse(w, ur)
 		return
 	}
-	a.JSONResponse(w, http.StatusOK, ur, "the client successfully funded the points")
+	a.JSONResponse(w, ur)
 }
 
 // InitRouter registers handlers

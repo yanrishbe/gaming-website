@@ -15,9 +15,9 @@ func TestCanRegister(t *testing.T) {
 		{Name: "Y", Balance: 300},
 		{Name: "N", Balance: 0},
 	}
-	r.False(canRegister(user[0]))
-	r.True(canRegister(user[1]))
-	r.False(canRegister(user[2]))
+	r.Error(canRegister(user[0]))
+	r.NoError(canRegister(user[1]))
+	r.Error(canRegister(user[2]))
 }
 
 func TestNew(t *testing.T) {
@@ -27,7 +27,7 @@ func TestNew(t *testing.T) {
 func TestDB_UserFund(t *testing.T) {
 	r := require.New(t)
 	db := New()
-	_ , err := db.UserFund(100, 1)
+	_, err := db.UserFund(100, 1)
 	r.Error(err)
 	u := entity.User{
 		Name:    "Jana",
@@ -39,15 +39,17 @@ func TestDB_UserFund(t *testing.T) {
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
 		go func() {
-			_ , err := db.UserFund(1, 1)
+			_, err := db.UserFund(1, 1)
 			r.NoError(err)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
-	us, err := db.GetUser(1)
-	r.NoError(err)
-	r.Equal(100, us.Balance)
+	//us, err := db.GetUser(1)
+	//r.NoError(err)
+	bal, _ := db.GetBalance(1)
+	//r.Equal(100, us.Balance)
+	r.Equal(100, bal)
 }
 
 func TestDB_UserTake(t *testing.T) {
@@ -135,7 +137,7 @@ func TestDB_SaveUser(t *testing.T) {
 		Name:    "",
 		Balance: 600,
 	}
-	_, err:= db.SaveUser(u)
+	_, err := db.SaveUser(u)
 	r.Error(err)
 }
 

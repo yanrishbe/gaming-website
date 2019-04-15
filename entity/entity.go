@@ -11,9 +11,9 @@ type User struct {
 }
 
 type Error struct {
-	Type    string
-	Code    int
-	Cause   error
+	Type string
+	Code int
+	//Cause   error
 	Message string
 }
 
@@ -27,53 +27,73 @@ var (
 	ErrUserNotFound = "user not found"
 	ErrDB           = "database error"
 	ErrUnknown      = "unknown error"
+	ErrDecode       = "decoding data error"
+	ErrID           = "wrong input id"
 )
 
-func HandlerError(err error) Error {
+func HandlerErr(err error) Error {
 	e, ok := err.(Error)
 	if ok {
 		return e
 	}
 	return Error{
-		Type:    ErrUnknown,
-		Cause:   err,
+		Type: ErrUnknown,
+		//Cause:   err,
 		Code:    500,
 		Message: err.Error(),
 	}
 }
 
-func DBError(err error) Error {
+func DecodeErr(err error) Error {
 	return Error{
-		Type:    ErrDB,
-		Cause:   err,
+		Type: ErrDecode,
+		//Cause:   err,
+		Code:    http.StatusUnprocessableEntity,
+		Message: err.Error(),
+	}
+}
+
+func DBErr(err error) Error {
+	return Error{
+		Type: ErrDB,
+		//Cause:   err,
 		Code:    503,
 		Message: err.Error(),
 	}
 }
 
-func FewBal(err error) Error {
+func FewBalErr(err error) Error {
 	return Error{
-		Type:    ErrCannotReg,
-		Cause:   err,
+		Type: ErrFewBalance,
+		//Cause:   err,
 		Code:    http.StatusUnprocessableEntity,
+		Message: err.Error(),
+	}
+}
+
+func InvIDErr(err error) Error {
+	return Error{
+		Type: ErrID,
+		//Cause:   err,
+		Code:    http.StatusBadRequest,
 		Message: err.Error(),
 	}
 }
 
 func DBRegisterErr(err error) Error {
 	return Error{
-		Type:    ErrCannotReg,
-		Cause:   err,
+		Type: ErrCannotReg,
+		//Cause:   err,
 		Code:    http.StatusUnprocessableEntity,
 		Message: err.Error(),
 	}
 
 }
 
-func UserNotFoundError(err error) Error {
+func UserNotFoundErr(err error) Error {
 	return Error{
-		Type:    ErrUserNotFound,
-		Cause:   err,
+		Type: ErrUserNotFound,
+		//Cause:   err,
 		Code:    http.StatusNotFound,
 		Message: err.Error(),
 	}
