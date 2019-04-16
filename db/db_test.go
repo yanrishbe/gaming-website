@@ -15,9 +15,9 @@ func TestCanRegister(t *testing.T) {
 		{Name: "Y", Balance: 300},
 		{Name: "N", Balance: 0},
 	}
-	r.Error(canRegister(user[0]))
-	r.NoError(canRegister(user[1]))
-	r.Error(canRegister(user[2]))
+	r.Error(user[0].CanRegister())
+	r.NoError(user[1].CanRegister())
+	r.Error(user[2].CanRegister())
 }
 
 func TestNew(t *testing.T) {
@@ -45,11 +45,9 @@ func TestDB_UserFund(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	//us, err := db.GetUser(1)
-	//r.NoError(err)
-	bal, _ := db.GetBalance(1)
-	//r.Equal(100, us.Balance)
-	r.Equal(100, bal)
+	us, err := db.GetUser(1)
+	r.NoError(err)
+	r.Equal(100, us.Balance)
 }
 
 func TestDB_UserTake(t *testing.T) {

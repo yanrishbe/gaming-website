@@ -25,7 +25,7 @@ func (u User) CanRegister() error {
 type Error struct {
 	Type    string `json:"type"`
 	Code    int    `json:"code"`
-	Cause   error  `json:"cause,omitempty"`
+	Cause   error  `json:"-"`
 	Message string `json:"message"`
 }
 

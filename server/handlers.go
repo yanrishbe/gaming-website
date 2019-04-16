@@ -17,16 +17,6 @@ type ReqPoints struct {
 	Points int `json:"points"`
 }
 
-// UserResp struct is a struct used for sending an answer to a client
-type UserResp struct {
-	entity.User `json:"user"`
-	Error       entity.Error `json:"error"`
-}
-
-//type Err struct {
-//	entity.Error `json:"error"`
-//}
-
 func errResp(w http.ResponseWriter, err error) {
 	resp := entity.HandlerErr(err)
 	w.WriteHeader(resp.Code)
@@ -52,25 +42,10 @@ func readID(r *http.Request) (int, error) {
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
-	//ur := UserResp{}
-	//err := json.NewDecoder(r.Body).Decode(&ur.User)
-	//if err != nil {
-	//	ur.Error = entity.DecodeErr(err)
-	//	a.JSONResponse(w, ur)
-	//	return
-	//}
-	//ur.User, err = a.DB.SaveUser(ur.User)
-	//if err != nil {
-	//	ur.Error = entity.HandlerErr(err)
-	//	a.JSONResponse(w, ur)
-	//	return
-	//}
-	//a.JSONResponse(w, ur)
-	///////////////////////
 	u := entity.User{}
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
-		errResp(w, err)
+		errResp(w, entity.DecodeErr(err))
 		return
 	}
 	u, err = a.DB.SaveUser(u)
@@ -82,21 +57,6 @@ func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
-	//ur := UserResp{}
-	//id, err := readID(r)
-	//if err != nil {
-	//	ur.Error = entity.HandlerErr(err)
-	//	a.JSONResponse(w, ur)
-	//	return
-	//}
-	//us, err := a.DB.GetUser(id)
-	//if err != nil {
-	//	ur.Error = entity.HandlerErr(err)
-	//	a.JSONResponse(w, ur)
-	//	return
-	//}
-	//ur.User = us
-	//a.JSONResponse(w, ur)
 	id, err := readID(r)
 	if err != nil {
 		errResp(w, err)
@@ -111,68 +71,57 @@ func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
-	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
 	err = a.DB.DeleteUser(id)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) takeUserPoints(w http.ResponseWriter, r *http.Request) {
-	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
 	points := ReqPoints{}
 	err = json.NewDecoder(r.Body).Decode(&points)
 	if err != nil {
-		ur.Error = entity.DecodeErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, entity.DecodeErr(err))
 		return
 	}
-	ur.User, err = a.DB.UserTake(id, points.Points)
+	u, err := a.DB.UserTake(id, points.Points)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
-	a.JSONResponse(w, ur)
+	a.JSONResponse(w, u)
 }
 
 func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
-	ur := UserResp{}
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
 	points := ReqPoints{}
 	err = json.NewDecoder(r.Body).Decode(&points)
 	if err != nil {
-		ur.Error = entity.DecodeErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, entity.DecodeErr(err))
 		return
 	}
-	ur.User, err = a.DB.UserFund(id, points.Points)
+	u, err := a.DB.UserFund(id, points.Points)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
-	a.JSONResponse(w, ur)
+	a.JSONResponse(w, u)
 }
 
 // InitRouter registers handlers
