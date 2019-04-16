@@ -1,7 +1,10 @@
 // Package entities collects data structures used both by a server and a database
 package entity
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+)
 
 // User struct represents a struct necessary for storing and changing user's data
 type User struct {
@@ -10,11 +13,20 @@ type User struct {
 	Balance int    `json:"balance"`
 }
 
+func (u User) CanRegister() error {
+	if u.Name == "" {
+		return DBRegisterErr(errors.New("user's name is empty"))
+	} else if u.Balance < 300 {
+		return DBRegisterErr(errors.New("user has got not enough points"))
+	}
+	return nil
+}
+
 type Error struct {
-	Type string
-	Code int
-	//Cause   error
-	Message string
+	Type    string `json:"type"`
+	Code    int    `json:"code"`
+	Cause   error  `json:"cause,omitempty"`
+	Message string `json:"message"`
 }
 
 func (e Error) Error() string {
@@ -37,17 +49,17 @@ func HandlerErr(err error) Error {
 		return e
 	}
 	return Error{
-		Type: ErrUnknown,
-		//Cause:   err,
-		Code:    500,
+		Type:    ErrUnknown,
+		Cause:   err,
+		Code:    http.StatusInternalServerError,
 		Message: err.Error(),
 	}
 }
 
 func DecodeErr(err error) Error {
 	return Error{
-		Type: ErrDecode,
-		//Cause:   err,
+		Type:    ErrDecode,
+		Cause:   err,
 		Code:    http.StatusUnprocessableEntity,
 		Message: err.Error(),
 	}
@@ -55,8 +67,8 @@ func DecodeErr(err error) Error {
 
 func DBErr(err error) Error {
 	return Error{
-		Type: ErrDB,
-		//Cause:   err,
+		Type:    ErrDB,
+		Cause:   err,
 		Code:    503,
 		Message: err.Error(),
 	}
@@ -64,8 +76,8 @@ func DBErr(err error) Error {
 
 func FewBalErr(err error) Error {
 	return Error{
-		Type: ErrFewBalance,
-		//Cause:   err,
+		Type:    ErrFewBalance,
+		Cause:   err,
 		Code:    http.StatusUnprocessableEntity,
 		Message: err.Error(),
 	}
@@ -73,8 +85,8 @@ func FewBalErr(err error) Error {
 
 func InvIDErr(err error) Error {
 	return Error{
-		Type: ErrID,
-		//Cause:   err,
+		Type:    ErrID,
+		Cause:   err,
 		Code:    http.StatusBadRequest,
 		Message: err.Error(),
 	}
@@ -82,8 +94,8 @@ func InvIDErr(err error) Error {
 
 func DBRegisterErr(err error) Error {
 	return Error{
-		Type: ErrCannotReg,
-		//Cause:   err,
+		Type:    ErrCannotReg,
+		Cause:   err,
 		Code:    http.StatusUnprocessableEntity,
 		Message: err.Error(),
 	}
@@ -92,8 +104,8 @@ func DBRegisterErr(err error) Error {
 
 func UserNotFoundErr(err error) Error {
 	return Error{
-		Type: ErrUserNotFound,
-		//Cause:   err,
+		Type:    ErrUserNotFound,
+		Cause:   err,
 		Code:    http.StatusNotFound,
 		Message: err.Error(),
 	}

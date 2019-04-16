@@ -20,7 +20,20 @@ type ReqPoints struct {
 // UserResp struct is a struct used for sending an answer to a client
 type UserResp struct {
 	entity.User `json:"user"`
-	Error       entity.Error `json:"error"` //string
+	Error       entity.Error `json:"error"`
+}
+
+//type Err struct {
+//	entity.Error `json:"error"`
+//}
+
+func errResp(w http.ResponseWriter, err error) {
+	resp := entity.HandlerErr(err)
+	w.WriteHeader(resp.Code)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		return
+	}
 }
 
 // API struct is used to initialize a router and a database
@@ -39,38 +52,62 @@ func readID(r *http.Request) (int, error) {
 }
 
 func (a *API) registerNewUser(w http.ResponseWriter, r *http.Request) {
-	ur := UserResp{}
-	err := json.NewDecoder(r.Body).Decode(&ur.User)
+	//ur := UserResp{}
+	//err := json.NewDecoder(r.Body).Decode(&ur.User)
+	//if err != nil {
+	//	ur.Error = entity.DecodeErr(err)
+	//	a.JSONResponse(w, ur)
+	//	return
+	//}
+	//ur.User, err = a.DB.SaveUser(ur.User)
+	//if err != nil {
+	//	ur.Error = entity.HandlerErr(err)
+	//	a.JSONResponse(w, ur)
+	//	return
+	//}
+	//a.JSONResponse(w, ur)
+	///////////////////////
+	u := entity.User{}
+	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
-		ur.Error = entity.DecodeErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
-	ur.User, err = a.DB.SaveUser(ur.User)
+	u, err = a.DB.SaveUser(u)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
-	a.JSONResponse(w, ur)
+	a.JSONResponse(w, u)
 }
 
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
-	ur := UserResp{}
+	//ur := UserResp{}
+	//id, err := readID(r)
+	//if err != nil {
+	//	ur.Error = entity.HandlerErr(err)
+	//	a.JSONResponse(w, ur)
+	//	return
+	//}
+	//us, err := a.DB.GetUser(id)
+	//if err != nil {
+	//	ur.Error = entity.HandlerErr(err)
+	//	a.JSONResponse(w, ur)
+	//	return
+	//}
+	//ur.User = us
+	//a.JSONResponse(w, ur)
 	id, err := readID(r)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
-	us, err := a.DB.GetUser(id)
+	u, err := a.DB.GetUser(id)
 	if err != nil {
-		ur.Error = entity.HandlerErr(err)
-		a.JSONResponse(w, ur)
+		errResp(w, err)
 		return
 	}
-	ur.User = us
-	a.JSONResponse(w, ur)
+	a.JSONResponse(w, u)
 }
 
 func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {

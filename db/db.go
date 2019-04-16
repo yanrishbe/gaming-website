@@ -15,20 +15,20 @@ type DB struct {
 	UsersCounter int
 }
 
-func canRegister(user entity.User) error {
-	if user.Name == "" {
-		return errors.New("user's name is empty")
-	} else if user.Balance < 300 {
-		return errors.New("user has got not enough points")
-	}
-	return nil
-}
+//func canRegister(user entity.User) error {
+//	if user.Name == "" {
+//		return errors.New("user's name is empty")
+//	} else if user.Balance < 300 {
+//		return errors.New("user has got not enough points")
+//	}
+//	return nil
+//}
 
 // SaveUser registers a new user
 func (db *DB) SaveUser(us entity.User) (entity.User, error) {
-	err := canRegister(us)
+	err := us.CanRegister()
 	if err != nil {
-		return us, entity.DBRegisterErr(err)
+		return us, err
 	}
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
@@ -42,8 +42,8 @@ func (db *DB) SaveUser(us entity.User) (entity.User, error) {
 func (db *DB) GetUser(id int) (entity.User, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
-	us, doesExist := db.UsersMap[id]
-	if !doesExist {
+	us, ok := db.UsersMap[id]
+	if !ok {
 		return us, entity.UserNotFoundErr(errors.New("the id cannot match any user"))
 	}
 	return us, nil
@@ -105,12 +105,12 @@ func (db *DB) CountUsers() int {
 	return len(db.UsersMap)
 }
 
-func (db *DB) GetBalance(id int) (int, error) {
-	us, err := db.GetUser(id)
-	if err != nil {
-		return 0, err
-	}
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	return us.Balance, nil
-}
+//func (db *DB) GetBalance(id int) (int, error) {
+//	us, err := db.GetUser(id)
+//	if err != nil {
+//		return 0, err
+//	}
+//	db.mutex.Lock()
+//	defer db.mutex.Unlock()
+//	return us.Balance, nil
+//}

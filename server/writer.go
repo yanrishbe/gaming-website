@@ -5,18 +5,18 @@ import (
 	"net/http"
 
 	"github.com/yanrishbe/gaming-website/entity"
+
+	"github.com/sirupsen/logrus"
 )
 
 // JSONResponse encodes user's data for a client
-func (a *API) JSONResponse(w http.ResponseWriter, user UserResp) {
-	emp := entity.Error{}
-	if err := user.Error; err != emp {
-		w.WriteHeader(user.Error.Code)
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
+func (a *API) JSONResponse(w http.ResponseWriter, user entity.User) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(user); err != nil {
+	err := json.NewEncoder(w).Encode(user)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"user": user,
+		}).Debug("encoding error")
 		return
 	}
 }
