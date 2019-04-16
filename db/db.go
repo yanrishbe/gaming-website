@@ -15,15 +15,6 @@ type DB struct {
 	UsersCounter int
 }
 
-//func canRegister(user entity.User) error {
-//	if user.Name == "" {
-//		return errors.New("user's name is empty")
-//	} else if user.Balance < 300 {
-//		return errors.New("user has got not enough points")
-//	}
-//	return nil
-//}
-
 // SaveUser registers a new user
 func (db *DB) SaveUser(us entity.User) (entity.User, error) {
 	err := us.CanRegister()
@@ -104,13 +95,3 @@ func (db *DB) CountUsers() int {
 	defer db.mutex.RUnlock()
 	return len(db.UsersMap)
 }
-
-//func (db *DB) GetBalance(id int) (int, error) {
-//	us, err := db.GetUser(id)
-//	if err != nil {
-//		return 0, err
-//	}
-//	db.mutex.Lock()
-//	defer db.mutex.Unlock()
-//	return us.Balance, nil
-//}
