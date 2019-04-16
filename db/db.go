@@ -2,9 +2,12 @@
 package db
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"sync"
 
+	_ "github.com/lib/pq"
 	"github.com/yanrishbe/gaming-website/entity"
 )
 
@@ -13,6 +16,29 @@ type DB struct {
 	mutex        *sync.RWMutex
 	UsersMap     map[int]entity.User
 	UsersCounter int
+}
+
+func NewDB() (DB, error) {
+	connStr := "user=postgres password=docker2147 dbname=gaming_website host=localhost port=5432 sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return DB{}, entity.DBErr(err)
+	}
+	err = db.Ping()
+	if err != nil {
+		return DB{}, fmt.Errorf("failed opening database: %v", err)
+	}
+	//gm := DB{db: db}
+	//err = gm.createTables()
+	//if err != nil {
+	//	return DB{}, fmt.Errorf("failed creating tables: %v", err)
+	//}
+	//gm.db.SetMaxOpenConns(20)
+	//return gm, nil
+}
+
+func (gm DB) Close() error {
+	return gm.db.Close()
 }
 
 // SaveUser registers a new user

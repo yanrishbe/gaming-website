@@ -69,7 +69,7 @@ func DBErr(err error) Error {
 	return Error{
 		Type:    ErrDB,
 		Cause:   err,
-		Code:    503,
+		Code:    http.StatusServiceUnavailable,
 		Message: err.Error(),
 	}
 }
