@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sync"
 
 	_ "github.com/lib/pq"
 	"github.com/yanrishbe/gaming-website/entity"
@@ -13,12 +12,10 @@ import (
 
 // DB struct stores users' data in UsersMap
 type DB struct {
-	mutex        *sync.RWMutex
-	UsersMap     map[int]entity.User
-	UsersCounter int
+	db *sql.DB
 }
 
-func NewDB() (DB, error) {
+func New() (DB, error) {
 	connStr := "user=postgres password=docker2147 dbname=gaming_website host=localhost port=5432 sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -26,98 +23,99 @@ func NewDB() (DB, error) {
 	}
 	err = db.Ping()
 	if err != nil {
-		return DB{}, fmt.Errorf("failed opening database: %v", err)
+		return DB{}, entity.DBErr(err)
 	}
-	//gm := DB{db: db}
-	//err = gm.createTables()
-	//if err != nil {
-	//	return DB{}, fmt.Errorf("failed creating tables: %v", err)
-	//}
-	//gm.db.SetMaxOpenConns(20)
-	//return gm, nil
+	gm := DB{db: db}
+	err = gm.createTables()
+	if err != nil {
+		return DB{}, entity.DBErr(err)
+	}
+	gm.db.SetMaxOpenConns(20)
+	return gm, nil
+}
+
+func (gm DB) createTables() error {
+	_, err := gm.db.Exec(`CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		name TEXT NOT NULL,
+		balance INT NOT NULL CHECK(balance >= 0)`)
+	if err != nil {
+		return entity.DBErr(err)
+	}
+	return nil
 }
 
 func (gm DB) Close() error {
 	return gm.db.Close()
 }
 
-// SaveUser registers a new user
-func (db *DB) SaveUser(us entity.User) (entity.User, error) {
-	err := us.CanRegister()
+func (gm DB) Register(u entity.User) (entity.User, error) {
+	err := u.CanRegister()
 	if err != nil {
-		return us, err
+		return u, err
 	}
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	db.UsersCounter++
-	us.ID = db.UsersCounter
-	us.Balance -= 300
-	db.UsersMap[db.UsersCounter] = us
-	return us, nil
+	_, err = gm.db.Exec("INSERT INTO users (name, balance) VALUES ($1, $2 - 300)", u.Name, u.Balance)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	err = gm.db.QueryRow("SELECT id, balance FROM users WHERE name = $1", u.Name).Scan(&u.ID, &u.Balance)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	return u, nil
 }
 
-func (db *DB) GetUser(id int) (entity.User, error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	us, ok := db.UsersMap[id]
-	if !ok {
-		return us, entity.UserNotFoundErr(errors.New("the id cannot match any user"))
+func (gm DB) GetUser(id int) (entity.User, error) {
+	if id <= 0 {
+		return entity.User{}, entity.InvIDErr(errors.New("expected id greater than 0"))
 	}
-	return us, nil
+	u := entity.User{}
+	err := gm.db.QueryRow(`SELECT id, name, balance FROM users 
+		WHERE id = $1`, id).Scan(&u.ID, &u.Name, &u.Balance)
+	return u, err
 }
 
-// DeleteUser removes a user from the UsersMap
-func (db *DB) DeleteUser(id int) error {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	_, ok := db.UsersMap[id]
-	if !ok {
-		return entity.UserNotFoundErr(errors.New("the id cannot match any user"))
+func (gm DB) UserTake(id, points int) (entity.User, error) {
+	u, err := gm.GetUser(id)
+	if err != nil {
+		return u, err
 	}
-	delete(db.UsersMap, id)
+	_, err = gm.db.Exec("UPDATE users SET balance = balance - $1 WHERE id = $2", points, u.ID)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	err = gm.db.QueryRow("SELECT id, name, balance FROM users WHERE id = $1", u.ID).Scan(&u.ID, &u.Name, &u.Balance)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	return u, nil
+}
+
+func (gm DB) UserFund(id, points int) (entity.User, error) {
+	u, err := gm.GetUser(id)
+	if err != nil {
+		return u, err
+	}
+	_, err = gm.db.Exec("UPDATE users SET balance = balance + $1 WHERE id = $2", points, u.ID)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	err = gm.db.QueryRow("SELECT id, name, balance FROM users WHERE id = $1", u.ID).Scan(&u.ID, &u.Name, &u.Balance)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	return u, nil
+}
+
+//FIXME////////////////////////////////////////////////////////////
+func (gm DB) Delete(id int) error {
+	_, err := gm.db.Exec("DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("couldn't update user's data: %v", err)
+	}
+	err = ud.tx.Commit()
+	if err != nil {
+		return fmt.Errorf("transaction error: %v", err)
+	}
 	return nil
-}
-
-// UserTake takes the requested amount of points from a user's balance
-func (db *DB) UserTake(id, points int) (entity.User, error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	us, ok := db.UsersMap[id]
-	if !ok {
-		return us, entity.UserNotFoundErr(errors.New("the id cannot match any user"))
-	}
-	if us.Balance < points {
-		return us, entity.FewBalErr(errors.New("not enough balance to execute the request"))
-	}
-	us.Balance -= points
-	db.UsersMap[id] = us
-	return us, nil
-}
-
-// UserFund adds the requested amount of points to user's balance
-func (db *DB) UserFund(id, points int) (entity.User, error) {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-	us, ok := db.UsersMap[id]
-	if !ok {
-		return us, entity.UserNotFoundErr(errors.New("the id cannot match any user"))
-	}
-	us.Balance += points
-	db.UsersMap[id] = us
-	return us, nil
-}
-
-// New is used to create an instance of DB struct and initialize it
-func New() *DB {
-	return &DB{
-		mutex:    &sync.RWMutex{},
-		UsersMap: make(map[int]entity.User),
-	}
-}
-
-// CountUsers returns the amount of elements in the db
-func (db *DB) CountUsers() int {
-	db.mutex.RLock()
-	defer db.mutex.RUnlock()
-	return len(db.UsersMap)
 }
