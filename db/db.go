@@ -4,7 +4,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	_ "github.com/lib/pq"
 	"github.com/yanrishbe/gaming-website/entity"
@@ -49,7 +48,7 @@ func (gm DB) Close() error {
 	return gm.db.Close()
 }
 
-func (gm DB) Register(u entity.User) (entity.User, error) {
+func (gm DB) SaveUser(u entity.User) (entity.User, error) {
 	err := u.CanRegister()
 	if err != nil {
 		return u, err
@@ -72,6 +71,9 @@ func (gm DB) GetUser(id int) (entity.User, error) {
 	u := entity.User{}
 	err := gm.db.QueryRow(`SELECT id, name, balance FROM users 
 		WHERE id = $1`, id).Scan(&u.ID, &u.Name, &u.Balance)
+	if err == sql.ErrNoRows {
+		return u, entity.UserNotFoundErr(err)
+	}
 	return u, err
 }
 
@@ -107,15 +109,20 @@ func (gm DB) UserFund(id, points int) (entity.User, error) {
 	return u, nil
 }
 
-//FIXME////////////////////////////////////////////////////////////
-func (gm DB) Delete(id int) error {
+func (gm DB) DeleteUser(id int) error {
 	_, err := gm.db.Exec("DELETE FROM users WHERE id = $1", id)
 	if err != nil {
-		return fmt.Errorf("couldn't update user's data: %v", err)
-	}
-	err = ud.tx.Commit()
-	if err != nil {
-		return fmt.Errorf("transaction error: %v", err)
+		return entity.DBErr(err)
 	}
 	return nil
+}
+
+func (gm DB) CountUsers() (int, error) {
+	row := gm.db.QueryRow("SELECT COUNT(id) FROM users")
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, entity.DBErr(err)
+	}
+	return count, nil
 }

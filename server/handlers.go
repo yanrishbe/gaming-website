@@ -29,7 +29,7 @@ func errResp(w http.ResponseWriter, err error) {
 // API struct is used to initialize a router and a database
 type API struct {
 	Router *mux.Router
-	DB     *db.DB
+	DB     db.DB //previously *db.DB
 }
 
 func readID(r *http.Request) (int, error) {
