@@ -110,7 +110,11 @@ func (gm DB) UserFund(id, points int) (entity.User, error) {
 }
 
 func (gm DB) DeleteUser(id int) error {
-	_, err := gm.db.Exec("DELETE FROM users WHERE id = $1", id)
+	u, err := gm.GetUser(id)
+	if err != nil {
+		return err
+	}
+	_, err = gm.db.Exec("DELETE FROM users WHERE id = $1", u.ID)
 	if err != nil {
 		return entity.DBErr(err)
 	}

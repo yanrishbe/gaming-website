@@ -8,6 +8,10 @@ import (
 	"github.com/yanrishbe/gaming-website/entity"
 )
 
+func TestMain(m *testing.M) {
+
+}
+
 func TestCanRegister(t *testing.T) {
 	r := require.New(t)
 	var user = []entity.User{
