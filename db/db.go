@@ -37,7 +37,7 @@ func (gm DB) createTables() error {
 	_, err := gm.db.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
 		name TEXT NOT NULL,
-		balance INT NOT NULL CHECK(balance >= 0)`)
+		balance INT NOT NULL CHECK(balance >= 0))`)
 	if err != nil {
 		return entity.DBErr(err)
 	}

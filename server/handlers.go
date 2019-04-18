@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/yanrishbe/gaming-website/db"
 	"github.com/yanrishbe/gaming-website/entity"
 
@@ -135,7 +137,11 @@ func (a *API) InitRouter() {
 
 // New initializes an instance of API struct
 func New() *API {
+	db, err := db.New()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	return &API{
-		Router: mux.NewRouter(), DB: db.New(),
+		Router: mux.NewRouter(), DB: db,
 	}
 }
