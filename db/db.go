@@ -29,7 +29,7 @@ func New() (DB, error) {
 	if err != nil {
 		return DB{}, entity.DBErr(err)
 	}
-	gm.db.SetMaxOpenConns(400)
+	gm.db.SetMaxOpenConns(5)
 	return gm, nil
 }
 

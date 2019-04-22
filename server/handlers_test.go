@@ -22,15 +22,17 @@ var api *API
 func TestMain(m *testing.M) {
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetLevel(logrus.DebugLevel)
-	var err error
-	api := New()
-	api.DB.CreateTables() //fixme require???
-	api.InitRouter()
+	api = New()
+	err := api.DB.CreateTables()
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	api.InitRouter()
 	code := m.Run()
-	api.DB.Close()
+	err = api.DB.Close()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	os.Exit(code)
 }
 
@@ -47,8 +49,6 @@ func unmarshal(t *testing.T, data []byte, output interface{}) {
 
 func TestAPI_RegisterNewUser(t *testing.T) {
 	r := require.New(t)
-	api := New()
-	api.InitRouter()
 	userOne := entity.User{Name: "", Balance: 400}
 	userOneByte := marshal(t, userOne)
 	req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userOneByte))
@@ -76,8 +76,6 @@ func TestAPI_RegisterNewUser(t *testing.T) {
 
 func TestAPI_GetUser(t *testing.T) {
 	r := require.New(t)
-	api := New()
-	api.InitRouter()
 	userTwo := entity.User{Name: "userTwo", Balance: 400}
 	userTwoByte := marshal(t, userTwo)
 	req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(userTwoByte))
@@ -106,8 +104,6 @@ func TestAPI_GetUser(t *testing.T) {
 
 func TestAPI_DeleteUser(t *testing.T) {
 	r := require.New(t)
-	api := New()
-	api.InitRouter()
 	userThree := entity.User{Name: "userThree", Balance: 500}
 
 	userThreeByte := marshal(t, userThree)
@@ -138,8 +134,6 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 func TestAPI_TakeUserPoints(t *testing.T) {
 	r := require.New(t)
-	api := New()
-	api.InitRouter()
 	userFour := entity.User{Name: "userFour", Balance: 800}
 
 	userFourByte := marshal(t, userFour)
@@ -188,8 +182,6 @@ func TestAPI_TakeUserPoints(t *testing.T) {
 
 func TestAPI_FundUserPoints(t *testing.T) {
 	r := require.New(t)
-	api := New()
-	api.InitRouter()
 	userFive := entity.User{Name: "userFive", Balance: 300}
 
 	userFiveByte := marshal(t, userFive)
@@ -219,7 +211,7 @@ func TestAPI_FundUserPoints(t *testing.T) {
 	r.EqualValues(http.StatusBadRequest, resp.Code)
 
 	var notPoints = "Not Points"
-	req = httptest.NewRequest(http.MethodPost, "/user/2/fund", bytes.NewBuffer([]byte(notPoints)))
+	req = httptest.NewRequest(http.MethodPost, "/user/"+id+"/fund", bytes.NewBuffer([]byte(notPoints)))
 	resp = httptest.NewRecorder()
 	api.Router.ServeHTTP(resp, req)
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
@@ -227,8 +219,6 @@ func TestAPI_FundUserPoints(t *testing.T) {
 
 func TestAPI_DataRace(t *testing.T) {
 	r := require.New(t)
-	api := New()
-	api.InitRouter()
 	userDR := entity.User{Name: "User", Balance: 500}
 	userDRByte := marshal(t, &userDR)
 
@@ -255,6 +245,9 @@ func TestAPI_DataRace(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodPost, "/user/"+id+"/take", bytes.NewBuffer(pointTakeBytes))
 			api.Router.ServeHTTP(resp, req)
+			if resp.Result().StatusCode != 200 {
+				panic(resp.Body.String())
+			}
 		}(i)
 	}
 
@@ -264,6 +257,9 @@ func TestAPI_DataRace(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodPost, "/user/"+id+"/fund", bytes.NewBuffer(pointFundBytes))
 			api.Router.ServeHTTP(resp, req)
+			if resp.Result().StatusCode != 200 {
+				panic(resp.Body.String())
+			}
 		}(i)
 	}
 

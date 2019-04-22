@@ -18,12 +18,18 @@ func TestMain(m *testing.M) {
 	logrus.SetLevel(logrus.DebugLevel)
 	var err error
 	dbT, err = New()
-	dbT.CreateTables() //fixme require???
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	err = dbT.CreateTables()
 	if err != nil {
 		logrus.Fatal(err)
 	}
 	code := m.Run()
-	dbT.Close()
+	err = dbT.Close()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	os.Exit(code)
 }
 
