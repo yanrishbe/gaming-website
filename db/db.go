@@ -53,11 +53,10 @@ func (gm DB) SaveUser(u entity.User) (entity.User, error) {
 	if err != nil {
 		return u, err
 	}
-	_, err = gm.db.Exec("INSERT INTO users (name, balance) VALUES ($1, $2 - 300)", u.Name, u.Balance)
-	if err != nil {
-		return u, entity.DBErr(err)
-	}
-	err = gm.db.QueryRow("SELECT id, balance FROM users WHERE name = $1", u.Name).Scan(&u.ID, &u.Balance)
+	err = gm.db.QueryRow(`
+			INSERT INTO users (name, balance) 
+			VALUES ($1, $2 - 300) 
+			RETURNING id, balance`, u.Name, u.Balance).Scan(&u.ID, &u.Balance)
 	if err != nil {
 		return u, entity.DBErr(err)
 	}
