@@ -25,7 +25,7 @@ func New() (DB, error) {
 		return DB{}, entity.DBErr(err)
 	}
 	gm := DB{db: db}
-	err = gm.createTables()
+	err = gm.CreateTables()
 	if err != nil {
 		return DB{}, entity.DBErr(err)
 	}
@@ -33,7 +33,7 @@ func New() (DB, error) {
 	return gm, nil
 }
 
-func (gm DB) createTables() error {
+func (gm DB) CreateTables() error {
 	_, err := gm.db.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
 		name TEXT NOT NULL,
@@ -83,7 +83,7 @@ func (gm DB) UserTake(id, points int) (entity.User, error) {
 	}
 	_, err = gm.db.Exec("UPDATE users SET balance = balance - $1 WHERE id = $2", points, u.ID)
 	if err != nil {
-		return u, entity.DBErr(err)
+		return u, entity.DBErr(err) //FewBalErr
 	}
 	err = gm.db.QueryRow("SELECT id, name, balance FROM users WHERE id = $1", u.ID).Scan(&u.ID, &u.Name, &u.Balance)
 	if err != nil {

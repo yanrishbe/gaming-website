@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 	logrus.SetLevel(logrus.DebugLevel)
 	var err error
 	dbT, err = New()
-	dbT.createTables() //fixme require???
+	dbT.CreateTables() //fixme require???
 	if err != nil {
 		logrus.Fatal(err)
 	}
