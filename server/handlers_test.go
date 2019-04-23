@@ -22,12 +22,20 @@ var api *API
 func TestMain(m *testing.M) {
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetLevel(logrus.DebugLevel)
-	api = New()
-	err := api.DB.CreateTables()
+	var err error
+	api, err = New()
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	api.InitRouter()
+	// err = api.DB.CreateTables()
+	//if err != nil {
+	//	logrus.Fatal(err)
+	//}
+	// tables are already created in New().
+	// Please make sure you have a clear division of abstraction between modules/objects. DB is responsible for
+	// initializing itself. Main func or tests had nothing to do with that.
+
+	//api.InitRouter() // you can call InitRouter when you create API.
 	code := m.Run()
 	err = api.DB.Close()
 	if err != nil {
@@ -46,6 +54,22 @@ func unmarshal(t *testing.T, data []byte, output interface{}) {
 	errResponse := json.Unmarshal(data, &output)
 	require.NoError(t, error(errResponse))
 }
+
+// I will just put one comment for all tests in *Handler* : they are not readable.
+// Technically they are good, they are validating the business-logic and they are doing their job.
+// But it's very hard to read them!
+// It's the same HTTP code boilerplate that should be encapsulated in separate func
+// You need to move code that looks the same to separate functions, so that I could see small amount of statements here in test
+// like
+// I'd advice you to create a "mini-client" that does http requests for you and provides convenient methods to unmarshal and validate response
+// u := entity.User{Balance:400}
+// mustDo("POST", "/user", u).Code(201).Unmarshal(&u)
+// assert.Equal(t,u.Balance,100)
+// mustDo("GET", fmt.Sprint("/user/",u.ID)).Code(200).Unmarshal(&u)
+// assert.Equal(t,u.Balance,100)
+// in that case I'll be able to track what is happening
+
+// we could do this this testing stuff together if you find it difficult
 
 func TestAPI_RegisterNewUser(t *testing.T) {
 	r := require.New(t)
@@ -217,6 +241,7 @@ func TestAPI_FundUserPoints(t *testing.T) {
 	r.EqualValues(http.StatusUnprocessableEntity, resp.Code)
 }
 
+// You already testing DataRace in DB, so you don't need to do it here :)
 func TestAPI_DataRace(t *testing.T) {
 	r := require.New(t)
 	userDR := entity.User{Name: "User", Balance: 500}

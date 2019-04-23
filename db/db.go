@@ -9,12 +9,24 @@ import (
 	"github.com/yanrishbe/gaming-website/entity"
 )
 
-// DB struct stores users' data in UsersMap
+// DB manages users' data using Postgres
 type DB struct {
 	db *sql.DB
 }
 
+// regarding DB and other long-running functions - it's always advisable to pass context.Context as a first parameter to
+// the long-running function,  and do all child calls using this context, for example
+// db.PingContextctx, ...(), db.QueryContext(ctx, ...), db.ExecContext(ctx, ...)
+// because for example DB call can hang forever and your handler can hang. It's also a nice way to
+// distinguish external calls from internal calls. When you see ctx.Context - you know that this function may block
+// for really long time.
+// It's not a problem, and you don't have to do that. Just a note for your information:)
+
+// But overall DB package looks great! Everything is clean and minimalistic. You did a gread job!
+
 func New() (DB, error) {
+	// TODO: move this conn string to New(connStr string) and path this string from main / test
+	// If you want to have hardcoded configuration in you code - try to move them closer to *main*
 	connStr := "user=postgres password=docker2147 dbname=gaming_website host=localhost port=5432 sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -29,7 +41,7 @@ func New() (DB, error) {
 	if err != nil {
 		return DB{}, entity.DBErr(err)
 	}
-	gm.db.SetMaxOpenConns(5)
+	gm.db.SetMaxOpenConns(5) // very nice :)
 	return gm, nil
 }
 
@@ -83,7 +95,7 @@ func (gm DB) UserTake(id, points int) (entity.User, error) {
 	}
 	_, err = gm.db.Exec("UPDATE users SET balance = balance - $1 WHERE id = $2", points, u.ID)
 	if err != nil {
-		return u, entity.DBErr(err) //FewBalErr
+		return u, entity.DBErr(err)
 	}
 	err = gm.db.QueryRow("SELECT id, name, balance FROM users WHERE id = $1", u.ID).Scan(&u.ID, &u.Name, &u.Balance)
 	if err != nil {

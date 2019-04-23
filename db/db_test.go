@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/stretchr/testify/require"
@@ -14,24 +16,49 @@ import (
 var dbT DB
 
 func TestMain(m *testing.M) {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-	logrus.SetLevel(logrus.DebugLevel)
+	//logrus.SetFormatter(&logrus.JSONFormatter{}) // why do you need these special JSON logs in tests?
+	logrus.SetLevel(logrus.DebugLevel) // They could be used in your application for business-needs, but typically normal logs look better
 	var err error
 	dbT, err = New()
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	err = dbT.CreateTables()
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	//err = dbT.CreateTables() // You already creating tables in New()
+	//if err != nil {
+	//	logrus.Fatal(err)
+	//}
 	code := m.Run()
-	err = dbT.Close()
+	//err = dbT.Close()   // if you want to close something after function returns it's better to do this using *defer*
+	//if err != nil {     // otherwise you will not close connection when Fatal happens. Usually we just encapsulate *defer* in a separate function
+	//	logrus.Fatal(err) // and in original function we will call it and then do Fatal() or something else
+	//}					  // see example below.
+	//					  // but practically in tests you don't need to worry about closing connections.
+	os.Exit(code)
+}
+
+/*
+func TestMain(m *testing.M) {
+	code, err := runTests(m)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	os.Exit(code)
 }
+func runTests(m *testing.M) (int, error) {
+	var err error
+	dbT, err = New()
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		err = dbT.Close()
+		if err != nil {
+			logrus.Warn(err)
+		}
+	}()
+	return m.Run(), nil
+}
+*/
 
 func TestCanRegister(t *testing.T) {
 	r := require.New(t)
@@ -43,8 +70,55 @@ func TestCanRegister(t *testing.T) {
 	r.Error(user[0].CanRegister())
 	r.NoError(user[1].CanRegister())
 	r.Error(user[2].CanRegister())
+
+	// Ideally in tests entities and expectations should be as near as possible, so it's easy
+	// to track logic and to identify which exact test is failing.
+	// you also want to check that error you had is the error you expected
+	// see example below:
+	// (try to break something and notice nice test error message. It will show where exactly test has failed using test name)
+
+	// this is called a "table test"
+	tt := []struct { // first we create struct with test cases
+		name string
+		user entity.User
+		err  string
+	}{
+		{
+			name: "empty user", // then we specify test cases with names, explaining what is the case we are testing
+			user: entity.User{},
+			err:  "user's name is empty",
+		},
+		{
+			name: "low balance",
+			user: entity.User{
+				Name:    "Artem",
+				Balance: 10,
+			},
+			err: "user has got not enough points",
+		},
+		{
+			name: "all is ok",
+			user: entity.User{
+				Name:    "Artem",
+				Balance: 300,
+			},
+			err: "",
+		},
+	}
+
+	for _, tc := range tt { // then we run theese test in this boilerplate loop to make sure error messages will be beautiful)
+		t.Run(tc.name, func(t *testing.T) {
+			errStr := "" // because your errors are wrapped - it's hard to check equality for them, so we simply check equality of error message stings
+			err := tc.user.CanRegister()
+			if err != nil {
+				errStr = err.Error()
+			}
+			assert.Equal(t, tc.err, errStr)
+		})
+	}
 }
 
+// Very nice test, nothing to remove or add from here :)
 func TestDB_UserFund(t *testing.T) {
 	r := require.New(t)
 	u := entity.User{
@@ -70,8 +144,11 @@ func TestDB_UserFund(t *testing.T) {
 
 func TestDB_UserTake(t *testing.T) {
 	r := require.New(t)
+	// here you could simply used  "table test" approach i've shown above to avoid these double users
+	// and i'm not sure why you need 2 users that both pass the test successfully.
+	// usually you don't want to repeat tests, you want each one to be individual from others.
 
-	u, y := entity.User{
+	u, y := entity.User{ // never use this scary multiple var initialization. It looks bad. U should initialize each variable on it's own.
 		Name:    "Jana",
 		Balance: 600,
 	}, entity.User{
@@ -109,6 +186,7 @@ func TestDB_UserTake(t *testing.T) {
 	r.Equal(100, usy.Balance)
 }
 
+// here you check only successful deletion, what about deletion of user that doesn't exist?
 func TestDB_DeleteUser(t *testing.T) {
 	r := require.New(t)
 	u := entity.User{
@@ -120,6 +198,9 @@ func TestDB_DeleteUser(t *testing.T) {
 	r.NoError(dbT.DeleteUser(us.ID))
 }
 
+// This looks like a duplicate from previous test, you were also testing data race there
+// So you want to make those test simpler (without go func()...), as data race is already tested here.
+// Test itself is nicely written :)
 func TestDB_DataRace(t *testing.T) {
 	r := require.New(t)
 
