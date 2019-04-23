@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	//}
 	// tables are already created in New().
 	// Please make sure you have a clear division of abstraction between modules/objects. DB is responsible for
-	// initializing itself. Main func or tests had nothing to do with that.
+	// initializing itself. Main func or tests had nothing to do with that. //fixme //////////////////
 
 	//api.InitRouter() // you can call InitRouter when you create API.
 	code := m.Run()
