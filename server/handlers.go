@@ -20,10 +20,9 @@ type ReqPoints struct {
 // API struct is used to initialize a router and a database
 type API struct {
 	Router *mux.Router
-	DB     db.DB //previously *db.DB
+	DB     db.DB
 }
 
-// nice helper func :)
 func readID(r *http.Request) (int, error) {
 	strID := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strID)
@@ -116,8 +115,8 @@ func (a *API) fundUserPoints(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, u)
 }
 
-// initRouter registers handlers
-func (a *API) InitRouter() {
+// InitRouter registers handlers
+func (a *API) initRouter() {
 	a.Router.HandleFunc("/user", a.registerNewUser).Methods(http.MethodPost)
 	a.Router.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 	a.Router.HandleFunc("/user/{id}", a.deleteUser).Methods(http.MethodDelete)
@@ -125,18 +124,11 @@ func (a *API) InitRouter() {
 	a.Router.HandleFunc("/user/{id}/fund", a.fundUserPoints).Methods(http.MethodPost)
 }
 
-// Handler's code is very good. You just have minor issues with initialization and object dependency management
-
 // New initializes an instance of API struct
-func New() (*API, error) {
-	db, err := db.New() // You should not create database here, you should create it in main and pass it here in params to New()
-	// Then it will be much clearer who is responsible for closing database.
-	if err != nil {
-		return nil, err
-	}
+func New(db db.DB) (*API, error) {
 	a := &API{
 		Router: mux.NewRouter(), DB: db,
 	}
-	a.InitRouter()
+	a.initRouter()
 	return a, nil
 }

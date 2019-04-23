@@ -34,7 +34,6 @@ func (e Error) Error() string {
 }
 
 var (
-	ErrFewBalance   = "balance is not enough"
 	ErrCannotReg    = "user's data is not valid"
 	ErrUserNotFound = "user not found"
 	ErrDB           = "database error"
@@ -70,18 +69,6 @@ func DBErr(err error) Error {
 		Type:    ErrDB,
 		Cause:   err,
 		Code:    http.StatusServiceUnavailable,
-		Message: err.Error(),
-	}
-}
-
-// you should not have deadcode in your application.
-// all previosly commited code is saved in Git, so if you don't need something - just delete it, so it doesn't confuse others
-// or if you want to explicitly put code here for some important reason - comment it out.
-func FewBalErr(err error) Error {
-	return Error{
-		Type:    ErrFewBalance,
-		Cause:   err,
-		Code:    http.StatusUnprocessableEntity,
 		Message: err.Error(),
 	}
 }

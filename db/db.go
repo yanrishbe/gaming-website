@@ -16,7 +16,7 @@ type DB struct {
 
 // regarding DB and other long-running functions - it's always advisable to pass context.Context as a first parameter to
 // the long-running function,  and do all child calls using this context, for example
-// db.PingContextctx, ...(), db.QueryContext(ctx, ...), db.ExecContext(ctx, ...)
+// db.PingContext(ctx, ...), db.QueryContext(ctx, ...), db.ExecContext(ctx, ...)
 // because for example DB call can hang forever and your handler can hang. It's also a nice way to
 // distinguish external calls from internal calls. When you see ctx.Context - you know that this function may block
 // for really long time.
@@ -24,10 +24,7 @@ type DB struct {
 
 // But overall DB package looks great! Everything is clean and minimalistic. You did a gread job!
 
-func New() (DB, error) {
-	// TODO: move this conn string to New(connStr string) and path this string from main / test
-	// If you want to have hardcoded configuration in you code - try to move them closer to *main*
-	connStr := "user=postgres password=docker2147 dbname=gaming_website host=localhost port=5432 sslmode=disable"
+func New(connStr string) (DB, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return DB{}, entity.DBErr(err)
@@ -41,7 +38,7 @@ func New() (DB, error) {
 	if err != nil {
 		return DB{}, entity.DBErr(err)
 	}
-	gm.db.SetMaxOpenConns(5) // very nice :)
+	gm.db.SetMaxOpenConns(5)
 	return gm, nil
 }
 

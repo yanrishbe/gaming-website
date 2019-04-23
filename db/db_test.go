@@ -16,23 +16,14 @@ import (
 var dbT DB
 
 func TestMain(m *testing.M) {
-	//logrus.SetFormatter(&logrus.JSONFormatter{}) // why do you need these special JSON logs in tests?
-	logrus.SetLevel(logrus.DebugLevel) // They could be used in your application for business-needs, but typically normal logs look better
+	logrus.SetLevel(logrus.DebugLevel)
 	var err error
-	dbT, err = New()
+	connStr := "user=postgres password=docker2147 dbname=gaming_website host=localhost port=5432 sslmode=disable"
+	dbT, err = New(connStr)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	//err = dbT.CreateTables() // You already creating tables in New()
-	//if err != nil {
-	//	logrus.Fatal(err)
-	//}
 	code := m.Run()
-	//err = dbT.Close()   // if you want to close something after function returns it's better to do this using *defer*
-	//if err != nil {     // otherwise you will not close connection when Fatal happens. Usually we just encapsulate *defer* in a separate function
-	//	logrus.Fatal(err) // and in original function we will call it and then do Fatal() or something else
-	//}					  // see example below.
-	//					  // but practically in tests you don't need to worry about closing connections.
 	os.Exit(code)
 }
 
