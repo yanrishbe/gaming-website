@@ -144,7 +144,7 @@ func TestDB_UserTake(t *testing.T) {
 		Balance: 600,
 	}, entity.User{
 		Name:    "M",
-		Balance: 400,
+		Balance: 100,
 	}
 	us, err := dbT.SaveUser(u)
 	r.NoError(err)

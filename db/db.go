@@ -22,8 +22,6 @@ type DB struct {
 // for really long time.
 // It's not a problem, and you don't have to do that. Just a note for your information:)
 
-// But overall DB package looks great! Everything is clean and minimalistic. You did a gread job!
-
 func New(connStr string) (DB, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
