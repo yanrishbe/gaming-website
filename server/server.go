@@ -25,8 +25,8 @@ func (a API) initRouter() {
 	a.r.HandleFunc("/user", a.regUser).Methods(http.MethodPost)
 	a.r.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 	a.r.HandleFunc("/user/{id}", a.delUser).Methods(http.MethodDelete)
-	a.r.HandleFunc("/user/take/{id}", a.takePoints).Methods(http.MethodPost)
-	a.r.HandleFunc("/user/fund/{id}", a.fundPoints).Methods(http.MethodPost)
+	a.r.HandleFunc("/user/{id}/take", a.takePoints).Methods(http.MethodPost)
+	a.r.HandleFunc("/user/{id}/fund", a.fundPoints).Methods(http.MethodPost)
 
 }
 
