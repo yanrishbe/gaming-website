@@ -3,9 +3,9 @@ package postgres
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"os"
 
+	_ "github.com/lib/pq"
 	"github.com/yanrishbe/gaming-website/entity"
 )
 
@@ -13,49 +13,29 @@ type DB struct {
 	db *sql.DB
 }
 
-func SetConnStr() string {
-	user, ok := os.LookupEnv("POSTGRES_USER")
-	if !ok {
-		user = "postgres"
-	}
-	password, ok := os.LookupEnv("POSTGRES_PASSWORD")
-	if !ok {
-		password = "docker2147"
-	}
-	dbname, ok := os.LookupEnv("POSTGRES_DB")
-	if !ok {
-		dbname = "gaming_website"
-	}
-	host, ok := os.LookupEnv("HOST")
-	if !ok {
-		host = "localhost"
-	}
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		port = "5432"
-	}
-	sslmode, ok := os.LookupEnv("SSLMODE")
-	if !ok {
-		sslmode = "disable"
-	}
-
-	return fmt.Sprintf("user=%v password=%v dbname=%v host=%v port=%v sslmode=%v", user, password, dbname, host, port, sslmode)
+func setConnStr() (string, bool) {
+	conn, ok := os.LookupEnv("CONN")
+	return conn, ok
 }
 
 func New() (DB, error) {
-	connStr := SetConnStr()
+	connStr, ok := setConnStr()
+	if !ok {
+		return DB{}, entity.DBErr(errors.New("empty connection string"))
+	}
 	db, err := sql.Open("postgres", connStr)
+	//db, err := sql.Open("postgres", "user=postgres dbname=gaming_website password=docker2147 host=localhost port=5432 sslmode=disable")
 	if err != nil {
-		return DB{}, err
+		return DB{}, entity.DBErr(err)
 	}
 	err = db.Ping()
 	gm := DB{db: db}
 	if err != nil {
-		return DB{}, err
+		return DB{}, entity.DBErr(err)
 	}
 	err = gm.CreateTables()
 	if err != nil {
-		return DB{}, err
+		return DB{}, entity.DBErr(err)
 	}
 	gm.db.SetMaxOpenConns(5)
 	return gm, nil
@@ -68,7 +48,7 @@ func (db DB) CreateTables() error {
 		name TEXT NOT NULL,
 		balance INT NOT NULL CHECK(balance>=0))`)
 	if err != nil {
-		return err
+		return entity.DBErr(err)
 	}
 	return nil
 }
@@ -83,21 +63,23 @@ func (db DB) RegUser(u entity.User) (int, error) {
 		VALUES ($1, $2 - 300)
  		RETURNING id`, u.Name, u.Balance).Scan(&u.ID)
 	if err != nil {
-		return 0, err
+		return 0, entity.DBErr(err)
 	}
 	return u.ID, nil
 }
 
 func (db DB) GetUser(id int) (entity.User, error) {
 	if id <= 0 {
-		return entity.User{}, errors.New("expected id greater than 0")
+		return entity.User{}, entity.InvIDErr(errors.New("expected id > 0"))
 	}
 	u := entity.User{}
 	err := db.db.QueryRow(`
 		SELECT id, name, balance 
 		FROM users WHERE id = $1`, id).Scan(&u.ID, &u.Name, &u.Balance)
 	if err == sql.ErrNoRows {
-		return u, err
+		return u, entity.UserNotFoundErr(err)
+	} else if err != nil {
+		return u, entity.DBErr(err)
 	}
-	return u, err
+	return u, nil
 }

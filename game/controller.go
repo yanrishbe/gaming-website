@@ -21,3 +21,7 @@ func (c Controller) Register(u entity.User) (entity.User, error) {
 	u, err = c.db.GetUser(id)
 	return u, err
 }
+
+func (c Controller) GetUser(id int) (entity.User, error) {
+
+}
