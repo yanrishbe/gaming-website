@@ -109,3 +109,19 @@ func (db DB) TakePoints(id, points int) (entity.User, error) {
 	}
 	return u, nil
 }
+
+func (db DB) FundPoints(id, points int) (entity.User, error) {
+	u, err := db.GetUser(id)
+	if err != nil {
+		return u, err
+	}
+	err = db.db.QueryRow(`
+		UPDATE users
+		SET balance = balance + $1
+		WHERE id = $2
+		RETURNING balance`, points, u.ID).Scan(&u.Balance)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	return u, nil
+}

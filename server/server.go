@@ -26,6 +26,7 @@ func (a API) initRouter() {
 	a.r.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 	a.r.HandleFunc("/user/{id}", a.delUser).Methods(http.MethodDelete)
 	a.r.HandleFunc("/user/take/{id}", a.takePoints).Methods(http.MethodPost)
+	a.r.HandleFunc("/user/fund/{id}", a.fundPoints).Methods(http.MethodPost)
 
 }
 
@@ -107,6 +108,26 @@ func (a *API) takePoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u, err := a.c.TakePoints(id, points.Points)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, u)
+}
+
+func (a *API) fundPoints(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	points := ReqPoints{}
+	err = json.NewDecoder(r.Body).Decode(&points)
+	if err != nil {
+		errResp(w, entity.DecodeErr(err))
+		return
+	}
+	u, err := a.c.FundPoints(id, points.Points)
 	if err != nil {
 		errResp(w, err)
 		return
