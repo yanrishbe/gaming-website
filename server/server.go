@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/yanrishbe/gaming-website/entity"
 
@@ -18,6 +19,7 @@ type API struct {
 
 func (a API) initRouter() {
 	a.r.HandleFunc("/user", a.regUser).Methods(http.MethodPost)
+	a.r.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 }
 
 func New(c game.Controller) (API, error) {
@@ -33,20 +35,40 @@ func (a API) GetRouter() *mux.Router {
 	return a.r
 }
 
+func readID(r *http.Request) (int, error) {
+	strID := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(strID)
+	if err != nil {
+		return 0, entity.InvIDErr(err)
+	}
+	return id, nil
+}
+
 func (a API) regUser(w http.ResponseWriter, r *http.Request) {
 	u := entity.User{}
-
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
 		errResp(w, entity.DecodeErr(err))
 		return
 	}
-
 	u, err = a.c.Register(u)
 	if err != nil {
 		errResp(w, err)
 		return
 	}
+	jsonResp(w, u)
+}
 
+func (a API) getUser(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	u, err := a.c.GetUser(id)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
 	jsonResp(w, u)
 }

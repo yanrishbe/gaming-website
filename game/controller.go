@@ -14,14 +14,11 @@ func New(db postgres.DB) Controller {
 }
 
 func (c Controller) Register(u entity.User) (entity.User, error) {
-	id, err := c.db.RegUser(u)
-	if err != nil {
-		return entity.User{}, err
-	}
-	u, err = c.db.GetUser(id)
-	return u, err
+	return c.db.RegUser(u)
 }
 
 func (c Controller) GetUser(id int) (entity.User, error) {
-
+	return c.db.GetUser(id)
 }
+
+//func (c Controller) Take
