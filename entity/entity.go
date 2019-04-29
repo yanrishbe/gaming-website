@@ -38,6 +38,7 @@ var (
 	ErrUserNotFound = "user not found"
 	ErrUnknown      = "unknown error"
 	ErrDecode       = "decoding data error"
+	ErrPoints       = "wrong input points"
 )
 
 func RegErr(err error) Error {
@@ -94,6 +95,15 @@ func HandlerErr(err error) Error {
 		Type:    ErrUnknown,
 		Cause:   err,
 		Code:    http.StatusInternalServerError,
+		Message: err.Error(),
+	}
+}
+
+func PointsErr(err error) Error {
+	return Error{
+		Type:    ErrPoints,
+		Cause:   err,
+		Code:    http.StatusBadRequest,
 		Message: err.Error(),
 	}
 }

@@ -24,7 +24,6 @@ func New() (DB, error) {
 		return DB{}, entity.DBErr(errors.New("empty connection string"))
 	}
 	db, err := sql.Open("postgres", connStr)
-	//db, err := sql.Open("postgres", "user=postgres dbname=gaming_website password=docker2147 host=localhost port=5432 sslmode=disable")
 	if err != nil {
 		return DB{}, entity.DBErr(err)
 	}
@@ -53,15 +52,11 @@ func (db DB) CreateTables() error {
 	return nil
 }
 
-func (db DB) RegUser(u entity.User) (entity.User, error) {
-	err := u.IsValid()
-	if err != nil {
-		return u, err
-	}
-	err = db.db.QueryRow(`
+func (db DB) CreateUser(u entity.User) (entity.User, error) {
+	err := db.db.QueryRow(`
 		INSERT INTO users (name, balance)
-		VALUES ($1, $2 - 300)
- 		RETURNING id, balance`, u.Name, u.Balance).Scan(&u.ID, &u.Balance)
+		VALUES ($1, $2)
+ 		RETURNING id`, u.Name, u.Balance).Scan(&u.ID)
 	if err != nil {
 		return u, entity.DBErr(err)
 	}
@@ -85,7 +80,7 @@ func (db DB) GetUser(id int) (entity.User, error) {
 	return u, nil
 }
 
-func (db DB) DeleteUser(id int) error {
+func (db DB) DelUser(id int) error {
 	u, err := db.GetUser(id)
 	if err != nil {
 		return err
@@ -99,18 +94,18 @@ func (db DB) DeleteUser(id int) error {
 	return nil
 }
 
-//func (db DB) UserTake(id, points int) (entity.User, error) {
-//	u, err := db.Get(id)
-//	if err != nil {
-//		return u, err
-//	}
-//	err = db.db.QueryRow(`
-//		UPDATE users
-//		SET balance = balance - $1
-//		WHERE id = $2
-//		RETURNING balance`, points, u.ID).Scan(&u.Balance)
-//	if err != nil {
-//		return u, entity.DBErr(err)
-//	}
-//	return u, nil
-//}
+func (db DB) TakePoints(id, points int) (entity.User, error) {
+	u, err := db.GetUser(id)
+	if err != nil {
+		return u, err
+	}
+	err = db.db.QueryRow(`
+		UPDATE users
+		SET balance = balance - $1
+		WHERE id = $2
+		RETURNING balance`, points, u.ID).Scan(&u.Balance)
+	if err != nil {
+		return u, entity.DBErr(err)
+	}
+	return u, nil
+}

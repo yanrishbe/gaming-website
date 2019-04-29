@@ -12,14 +12,21 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type ReqPoints struct {
+	Points int `json:"points"`
+}
+
 type API struct {
 	r *mux.Router
 	c game.Controller
 }
 
 func (a API) initRouter() {
-	a.r.HandleFunc("/user", a.register).Methods(http.MethodPost)
-	a.r.HandleFunc("/user/{id}", a.get).Methods(http.MethodGet)
+	a.r.HandleFunc("/user", a.regUser).Methods(http.MethodPost)
+	a.r.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
+	a.r.HandleFunc("/user/{id}", a.delUser).Methods(http.MethodDelete)
+	a.r.HandleFunc("/user/take/{id}", a.takePoints).Methods(http.MethodPost)
+
 }
 
 func New(c game.Controller) (API, error) {
@@ -44,14 +51,14 @@ func readID(r *http.Request) (int, error) {
 	return id, nil
 }
 
-func (a API) register(w http.ResponseWriter, r *http.Request) {
+func (a API) regUser(w http.ResponseWriter, r *http.Request) {
 	u := entity.User{}
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
 		errResp(w, entity.DecodeErr(err))
 		return
 	}
-	u, err = a.c.Register(u)
+	u, err = a.c.RegUser(u)
 	if err != nil {
 		errResp(w, err)
 		return
@@ -59,13 +66,13 @@ func (a API) register(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, u)
 }
 
-func (a API) get(w http.ResponseWriter, r *http.Request) {
+func (a API) getUser(w http.ResponseWriter, r *http.Request) {
 	id, err := readID(r)
 	if err != nil {
 		errResp(w, err)
 		return
 	}
-	u, err := a.c.Get(id)
+	u, err := a.c.GetUser(id)
 	if err != nil {
 		errResp(w, err)
 		return
@@ -73,16 +80,36 @@ func (a API) get(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, u)
 }
 
-func (a API) delete(w http.ResponseWriter, r *http.Request) {
+func (a API) delUser(w http.ResponseWriter, r *http.Request) {
 	id, err := readID(r)
 	if err != nil {
 		errResp(w, err)
 		return
 	}
-	err = a.c.Delete(id)
+	err = a.c.DelUser(id)
 	if err != nil {
 		errResp(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) takePoints(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	points := ReqPoints{}
+	err = json.NewDecoder(r.Body).Decode(&points)
+	if err != nil {
+		errResp(w, entity.DecodeErr(err))
+		return
+	}
+	u, err := a.c.TakePoints(id, points.Points)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, u)
 }
