@@ -18,8 +18,8 @@ type API struct {
 }
 
 func (a API) initRouter() {
-	a.r.HandleFunc("/user", a.regUser).Methods(http.MethodPost)
-	a.r.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
+	a.r.HandleFunc("/user", a.register).Methods(http.MethodPost)
+	a.r.HandleFunc("/user/{id}", a.get).Methods(http.MethodGet)
 }
 
 func New(c game.Controller) (API, error) {
@@ -44,7 +44,7 @@ func readID(r *http.Request) (int, error) {
 	return id, nil
 }
 
-func (a API) regUser(w http.ResponseWriter, r *http.Request) {
+func (a API) register(w http.ResponseWriter, r *http.Request) {
 	u := entity.User{}
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
@@ -59,16 +59,30 @@ func (a API) regUser(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, u)
 }
 
-func (a API) getUser(w http.ResponseWriter, r *http.Request) {
+func (a API) get(w http.ResponseWriter, r *http.Request) {
 	id, err := readID(r)
 	if err != nil {
 		errResp(w, err)
 		return
 	}
-	u, err := a.c.GetUser(id)
+	u, err := a.c.Get(id)
 	if err != nil {
 		errResp(w, err)
 		return
 	}
 	jsonResp(w, u)
+}
+
+func (a API) delete(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	err = a.c.Delete(id)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

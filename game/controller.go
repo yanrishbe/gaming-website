@@ -17,8 +17,10 @@ func (c Controller) Register(u entity.User) (entity.User, error) {
 	return c.db.RegUser(u)
 }
 
-func (c Controller) GetUser(id int) (entity.User, error) {
+func (c Controller) Get(id int) (entity.User, error) {
 	return c.db.GetUser(id)
 }
 
-//func (c Controller) Take
+func (c Controller) Delete(id int) error {
+	return c.db.DeleteUser(id)
+}

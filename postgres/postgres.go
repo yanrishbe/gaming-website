@@ -75,7 +75,8 @@ func (db DB) GetUser(id int) (entity.User, error) {
 	u := entity.User{}
 	err := db.db.QueryRow(`
 		SELECT id, name, balance 
-		FROM users WHERE id = $1`, id).Scan(&u.ID, &u.Name, &u.Balance)
+		FROM users 
+		WHERE id = $1`, id).Scan(&u.ID, &u.Name, &u.Balance)
 	if err == sql.ErrNoRows {
 		return u, entity.UserNotFoundErr(err)
 	} else if err != nil {
@@ -84,18 +85,32 @@ func (db DB) GetUser(id int) (entity.User, error) {
 	return u, nil
 }
 
-func (db DB) UserTake(id, points int) (entity.User, error) {
+func (db DB) DeleteUser(id int) error {
 	u, err := db.GetUser(id)
 	if err != nil {
-		return u, err
+		return err
 	}
-	err = db.db.QueryRow(`
-		UPDATE users 
-		SET balance = balance - $1 
-		WHERE id = $2
-		RETURNING balance`, points, u.ID).Scan(&u.Balance)
+	_, err = db.db.Exec(`
+		DELETE FROM users 
+		WHERE id = $1`, u.ID)
 	if err != nil {
-		return u, entity.DBErr(err)
+		return entity.DBErr(err)
 	}
-	return u, nil
+	return nil
 }
+
+//func (db DB) UserTake(id, points int) (entity.User, error) {
+//	u, err := db.Get(id)
+//	if err != nil {
+//		return u, err
+//	}
+//	err = db.db.QueryRow(`
+//		UPDATE users
+//		SET balance = balance - $1
+//		WHERE id = $2
+//		RETURNING balance`, points, u.ID).Scan(&u.Balance)
+//	if err != nil {
+//		return u, entity.DBErr(err)
+//	}
+//	return u, nil
+//}
