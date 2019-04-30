@@ -33,23 +33,15 @@ func (c Controller) DelUser(id int) error {
 }
 
 func (c Controller) TakePoints(id, points int) (entity.User, error) {
-	u, err := c.db.GetUser(id)
-	if err != nil {
-		return u, err
-	}
 	if points < 1 {
-		return u, entity.PointsErr(errors.New("points must be > 0"))
+		return entity.User{}, entity.PointsErr(errors.New("points must be > 0"))
 	}
 	return c.db.TakePoints(id, points)
 }
 
 func (c Controller) FundPoints(id, points int) (entity.User, error) {
-	u, err := c.db.GetUser(id)
-	if err != nil {
-		return u, err
-	}
 	if points < 1 {
-		return u, entity.PointsErr(errors.New("points must be > 0"))
+		return entity.User{}, entity.PointsErr(errors.New("points must be > 0"))
 	}
 	return c.db.FundPoints(id, points)
 }
