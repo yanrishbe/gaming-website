@@ -21,26 +21,17 @@ type API struct {
 	c game.Controller
 }
 
-func (a API) initRouter() {
+func New(c game.Controller) (*mux.Router, error) {
+	a := API{
+		r: mux.NewRouter(),
+		c: c,
+	}
 	a.r.HandleFunc("/user", a.regUser).Methods(http.MethodPost)
 	a.r.HandleFunc("/user/{id}", a.getUser).Methods(http.MethodGet)
 	a.r.HandleFunc("/user/{id}", a.delUser).Methods(http.MethodDelete)
 	a.r.HandleFunc("/user/{id}/take", a.takePoints).Methods(http.MethodPost)
 	a.r.HandleFunc("/user/{id}/fund", a.fundPoints).Methods(http.MethodPost)
-
-}
-
-func New(c game.Controller) (API, error) {
-	a := API{
-		r: mux.NewRouter(),
-		c: c,
-	}
-	a.initRouter()
-	return a, nil
-}
-
-func (a API) GetRouter() *mux.Router {
-	return a.r
+	return a.r, nil
 }
 
 func readID(r *http.Request) (int, error) {

@@ -20,6 +20,9 @@ func (c Controller) RegUser(u entity.User) (entity.User, error) {
 	if err != nil {
 		return u, err
 	}
+	if u.Balance < 300 {
+		return u, entity.RegErr(errors.New("low balance"))
+	}
 	u.Balance -= 300
 	return c.db.CreateUser(u)
 }

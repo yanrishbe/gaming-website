@@ -14,8 +14,21 @@ type User struct {
 func (u User) IsValid() error {
 	if u.Name == "" {
 		return RegErr(errors.New("empty name"))
-	} else if u.Balance < 300 {
-		return RegErr(errors.New("low balance"))
+	}
+	return nil
+}
+
+type Tournament struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Deposit int    `json:"deposit"`
+	Prize   int    `json:"prize"`
+	Users   []User `json:"users"`
+}
+
+func (t Tournament) IsValid() error {
+	if t.Name == "" {
+		return RegErr(errors.New("empty name"))
 	}
 	return nil
 }

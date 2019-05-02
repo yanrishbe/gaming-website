@@ -16,9 +16,9 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	api, err := server.New(game.New(db))
+	r, err := server.New(game.New(db))
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Fatal(http.ListenAndServe(":8080", api.GetRouter()))
+	logrus.Fatal(http.ListenAndServe(":8080", r))
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -13,13 +14,8 @@ type DB struct {
 	db *sql.DB
 }
 
-func setConnStr() (string, bool) {
-	conn, ok := os.LookupEnv("CONN")
-	return conn, ok
-}
-
 func New() (DB, error) {
-	connStr, ok := setConnStr()
+	connStr, ok := os.LookupEnv("CONN")
 	if !ok {
 		return DB{}, entity.DBErr(errors.New("empty connection string"))
 	}
@@ -47,7 +43,26 @@ func (db DB) CreateTables() error {
 		name TEXT NOT NULL,
 		balance INT NOT NULL CHECK(balance>=0))`)
 	if err != nil {
-		return entity.DBErr(err)
+		return entity.DBErr(fmt.Errorf("table 'users' failed: %v", err))
+	}
+	_, err = db.db.Exec(`
+		CREATE TABLE IF NOT EXISTS tournaments (
+		id serial PRIMARY KEY,
+		name TEXT NOT NULL,
+		deposit INT NOT NULL CHECK(deposit>=0),
+		prize INT NOT NULL CHECK(prize>=0) DEFAULT 0,
+		finished BOOLEAN NOT NULL DEFAULT FALSE,
+		winner_id INT NOT NULL)`)
+	if err != nil {
+		return entity.DBErr(fmt.Errorf("table 'tournaments' failed: %v", err))
+	}
+	_, err = db.db.Exec(`
+		CREATE TABLE IF NOT EXISTS tournament_req (
+		tournament_id INT NOT NULL REFERENCES tournaments (id) ON DELETE RESTRICT,
+		user_id INT NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
+		PRIMARY KEY (tournament_id, user_id) )`)
+	if err != nil {
+		return entity.DBErr(fmt.Errorf("table 'tournament_req' failed: %v", err))
 	}
 	return nil
 }
