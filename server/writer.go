@@ -9,12 +9,19 @@ import (
 	"github.com/yanrishbe/gaming-website/entity"
 )
 
-func jsonResp(w http.ResponseWriter, u entity.User) {
+func jsonResp(w http.ResponseWriter, i interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := json.NewEncoder(w).Encode(u)
+	err := json.NewEncoder(w).Encode(i)
 	if err != nil {
+		var logField string
+		switch i.(type) {
+		case entity.User:
+			logField = "user"
+		case entity.Tournament:
+			logField = "tournament"
+		}
 		logrus.WithFields(logrus.Fields{
-			"user": u,
+			logField: i,
 		}).Debug("encoding error")
 		return
 	}

@@ -48,3 +48,14 @@ func (c Controller) FundPoints(id, points int) (entity.User, error) {
 	}
 	return c.db.FundPoints(id, points)
 }
+
+func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
+	err := t.IsValid()
+	if err != nil {
+		return t, err
+	}
+	if t.Deposit < 0 {
+		return t, entity.RegErr(errors.New("deposit must be > 0"))
+	}
+	return c.db.CreateTourn(t)
+}

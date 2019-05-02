@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
 
 	_ "github.com/lib/pq"
 	"github.com/yanrishbe/gaming-website/entity"
@@ -15,10 +14,11 @@ type DB struct {
 }
 
 func New() (DB, error) {
-	connStr, ok := os.LookupEnv("CONN")
-	if !ok {
-		return DB{}, entity.DBErr(errors.New("empty connection string"))
-	}
+	//connStr, ok := os.LookupEnv("CONN")
+	//if !ok {
+	//	return DB{}, entity.DBErr(errors.New("empty connection string"))
+	//}
+	connStr := "user=postgres dbname=gaming_website password=docker2147 host=localhost port=5432 sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return DB{}, entity.DBErr(err)
@@ -52,7 +52,7 @@ func (db DB) CreateTables() error {
 		deposit INT NOT NULL CHECK(deposit>=0),
 		prize INT NOT NULL CHECK(prize>=0) DEFAULT 0,
 		finished BOOLEAN NOT NULL DEFAULT FALSE,
-		winner_id INT NOT NULL)`)
+		winner_id INT)`)
 	if err != nil {
 		return entity.DBErr(fmt.Errorf("table 'tournaments' failed: %v", err))
 	}

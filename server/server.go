@@ -31,6 +31,7 @@ func New(c game.Controller) (*mux.Router, error) {
 	a.r.HandleFunc("/user/{id}", a.delUser).Methods(http.MethodDelete)
 	a.r.HandleFunc("/user/{id}/take", a.takePoints).Methods(http.MethodPost)
 	a.r.HandleFunc("/user/{id}/fund", a.fundPoints).Methods(http.MethodPost)
+	a.r.HandleFunc("/tournament", a.regTourn).Methods(http.MethodPost)
 	return a.r, nil
 }
 
@@ -41,6 +42,21 @@ func readID(r *http.Request) (int, error) {
 		return 0, entity.InvIDErr(err)
 	}
 	return id, nil
+}
+func (a API) regTourn(w http.ResponseWriter, r *http.Request) {
+	t := entity.Tournament{}
+	err := json.NewDecoder(r.Body).Decode(&t)
+	if err != nil {
+		errResp(w, entity.DecodeErr(err))
+		return
+	}
+	t.Users = []entity.User{}
+	t, err = a.c.RegTourn(t)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, t)
 }
 
 func (a API) regUser(w http.ResponseWriter, r *http.Request) {
