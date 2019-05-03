@@ -19,7 +19,7 @@ func (u User) IsValid() error {
 }
 
 type Tournament struct {
-	ID      string `json:"id"`
+	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Deposit int    `json:"deposit"`
 	Prize   int    `json:"prize"`

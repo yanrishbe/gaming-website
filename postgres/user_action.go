@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 	"github.com/yanrishbe/gaming-website/entity"
@@ -14,11 +15,11 @@ type DB struct {
 }
 
 func New() (DB, error) {
-	//connStr, ok := os.LookupEnv("CONN")
-	//if !ok {
-	//	return DB{}, entity.DBErr(errors.New("empty connection string"))
-	//}
-	connStr := "user=postgres dbname=gaming_website password=docker2147 host=localhost port=5432 sslmode=disable"
+	connStr, ok := os.LookupEnv("CONN")
+	if !ok {
+		return DB{}, entity.DBErr(errors.New("empty connection string"))
+	}
+	//connStr := "user=postgres dbname=gaming_website password=docker2147 host=localhost port=5432 sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return DB{}, entity.DBErr(err)

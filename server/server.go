@@ -32,6 +32,8 @@ func New(c game.Controller) (*mux.Router, error) {
 	a.r.HandleFunc("/user/{id}/take", a.takePoints).Methods(http.MethodPost)
 	a.r.HandleFunc("/user/{id}/fund", a.fundPoints).Methods(http.MethodPost)
 	a.r.HandleFunc("/tournament", a.regTourn).Methods(http.MethodPost)
+	a.r.HandleFunc("/tournament/{id}", a.getTourn).Methods(http.MethodGet)
+	a.r.HandleFunc("/tournament/{id}/join", a.joinTourn).Methods(http.MethodPost)
 	return a.r, nil
 }
 
@@ -52,6 +54,40 @@ func (a API) regTourn(w http.ResponseWriter, r *http.Request) {
 	}
 	t.Users = []entity.User{}
 	t, err = a.c.RegTourn(t)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, t)
+}
+
+func (a API) getTourn(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	t, err := a.c.GetTourn(id)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, t)
+}
+
+func (a API) joinTourn(w http.ResponseWriter, r *http.Request) {
+	u := entity.User{}
+	err := json.NewDecoder(r.Body).Decode(&u)
+	if err != nil {
+		errResp(w, entity.DecodeErr(err))
+		return
+	}
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	t, err := a.c.JoinTourn(id, u.ID)
 	if err != nil {
 		errResp(w, err)
 		return

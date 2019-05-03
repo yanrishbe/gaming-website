@@ -59,3 +59,19 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 	}
 	return c.db.CreateTourn(t)
 }
+
+func (c Controller) GetTourn(id int) (entity.Tournament, error) {
+	t, err := c.db.GetTourn(id)
+	if len(t.Users) == 0 {
+		t.Users = []entity.User{}
+	}
+	return t, err
+}
+
+func (c Controller) JoinTourn(tID, uID int) (entity.Tournament, error) {
+	t, err := c.db.JoinTourn(tID, uID)
+	if err != nil {
+		return t, err
+	}
+	return c.db.GetTourn(t.ID)
+}
