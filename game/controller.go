@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/yanrishbe/gaming-website/entity"
 	"github.com/yanrishbe/gaming-website/postgres"
@@ -63,15 +64,33 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 func (c Controller) GetTourn(id int) (entity.Tournament, error) {
 	t, err := c.db.GetTourn(id)
 	if len(t.Users) == 0 {
-		t.Users = []entity.User{}
+		t.Users = []entity.UserTourn{}
 	}
 	return t, err
 }
 
 func (c Controller) JoinTourn(tID, uID int) (entity.Tournament, error) {
+	err := c.db.ValidJoin(tID, uID)
+	if err != nil {
+		return entity.Tournament{}, err
+	}
 	t, err := c.db.JoinTourn(tID, uID)
 	if err != nil {
 		return t, err
 	}
 	return c.db.GetTourn(t.ID)
+}
+
+func (c Controller) FinishTourn(id int) (entity.Tournament, error) {
+	err := c.db.ValidFinish(id)
+	if err != nil {
+		return entity.Tournament{}, err
+	}
+	winner, err := c.db.TournUsers(id)
+	if err != nil {
+		return entity.Tournament{}, fmt.Errorf("error finding a winner %v", err)
+	}
+	wID := winner()
+	t, err := c.db.FinishTourn(id, wID)
+
 }

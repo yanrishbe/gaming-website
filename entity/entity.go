@@ -18,13 +18,47 @@ func (u User) IsValid() error {
 	return nil
 }
 
-type Tournament struct {
-	ID      int    `json:"id"`
-	Name    string `json:"name"`
-	Deposit int    `json:"deposit"`
-	Prize   int    `json:"prize"`
-	Users   []User `json:"users"`
+type UserTourn struct {
+	ID   int    `json:"userId"`
+	Name string `json:"name"`
 }
+
+func (u UserTourn) IsValid() error {
+	if u.Name == "" {
+		return RegErr(errors.New("empty name"))
+	}
+	return nil
+}
+
+type Winner struct {
+	ID     int    `json:"userId"`
+	Name   string `json:"name"`
+	Winner bool   `json:"winner"`
+}
+
+type TournFinished struct {
+	ID     int      `json:"id"`
+	Name   string   `json:"name"`
+	Winner int      `json:"winner"`
+	Prize  int      `json:"prize"`
+	Users  []Winner `json:"users"`
+	Status Status   `json:"status"`
+}
+
+type Tournament struct {
+	ID      int         `json:"id"`
+	Name    string      `json:"name"`
+	Deposit int         `json:"deposit"`
+	Prize   int         `json:"prize"`
+	Users   []UserTourn `json:"users"`
+	Status  Status      `json:"status"`
+}
+type Status string
+
+const (
+	Active   Status = "active"
+	Finished Status = "finished"
+)
 
 func (t Tournament) IsValid() error {
 	if t.Name == "" {
@@ -52,6 +86,7 @@ var (
 	ErrUnknown      = "unknown error"
 	ErrDecode       = "decoding data error"
 	ErrPoints       = "wrong input points"
+	ErrInvReq       = "wrong request"
 )
 
 func RegErr(err error) Error {
@@ -115,6 +150,15 @@ func HandlerErr(err error) Error {
 func PointsErr(err error) Error {
 	return Error{
 		Type:    ErrPoints,
+		Cause:   err,
+		Code:    http.StatusBadRequest,
+		Message: err.Error(),
+	}
+}
+
+func FinishErr(err error) Error {
+	return Error{
+		Type:    ErrInvReq,
 		Cause:   err,
 		Code:    http.StatusBadRequest,
 		Message: err.Error(),

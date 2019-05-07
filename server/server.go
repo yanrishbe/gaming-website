@@ -52,7 +52,7 @@ func (a API) regTourn(w http.ResponseWriter, r *http.Request) {
 		errResp(w, entity.DecodeErr(err))
 		return
 	}
-	t.Users = []entity.User{}
+	t.Users = []entity.UserTourn{}
 	t, err = a.c.RegTourn(t)
 	if err != nil {
 		errResp(w, err)
@@ -76,7 +76,7 @@ func (a API) getTourn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a API) joinTourn(w http.ResponseWriter, r *http.Request) {
-	u := entity.User{}
+	u := entity.UserTourn{}
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
 		errResp(w, entity.DecodeErr(err))
