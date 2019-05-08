@@ -61,7 +61,14 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 	return c.db.CreateTourn(t)
 }
 
-func (c Controller) GetTourn(id int) (entity.Tournament, error) {
+func (c Controller) GetTourn(id int) (interface{}, error) { ////////////////////////
+	ok, err := c.db.ValidFinish(id)
+	if err != nil {
+		return entity.Tournament{}, err
+	}
+	if ok {
+		return c.db.GetTournFinished(id)
+	}
 	t, err := c.db.GetTourn(id)
 	if len(t.Users) == 0 {
 		t.Users = []entity.UserTourn{}
@@ -81,16 +88,22 @@ func (c Controller) JoinTourn(tID, uID int) (entity.Tournament, error) {
 	return c.db.GetTourn(t.ID)
 }
 
-func (c Controller) FinishTourn(id int) (entity.Tournament, error) {
-	err := c.db.ValidFinish(id)
+func (c Controller) FinishTourn(id int) (entity.TournFinished, error) { //////////////////////////////
+	ok, err := c.db.ValidFinish(id)
 	if err != nil {
-		return entity.Tournament{}, err
+		return entity.TournFinished{}, err
+	}
+	if ok {
+		return entity.TournFinished{}, entity.FinishErr(errors.New("tournament is already finished"))
 	}
 	winner, err := c.db.TournUsers(id)
 	if err != nil {
-		return entity.Tournament{}, fmt.Errorf("error finding a winner %v", err)
+		return entity.TournFinished{}, fmt.Errorf("error finding a winner %v", err)
 	}
 	wID := winner()
-	t, err := c.db.FinishTourn(id, wID)
-
+	err = c.db.FinishTourn(id, wID)
+	if err != nil {
+		return entity.TournFinished{}, err
+	}
+	return c.db.GetTournFinished(id)
 }

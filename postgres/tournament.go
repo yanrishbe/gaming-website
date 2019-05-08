@@ -172,51 +172,88 @@ func (db DB) TournUsers(tID int) (func() int, error) {
 	}, nil
 }
 
-func (db DB) FinishTourn(tID, uID int) (entity.TournFinished, error) {
-	var t entity.TournFinished
-
+func (db DB) FinishTourn(tID, uID int) error {
 	tx, err := db.db.Begin()
 	defer tx.Rollback()
 	if err != nil {
-		return t, entity.DBErr(err)
+		return entity.DBErr(err)
 	}
-
+	var prize int
 	err = tx.QueryRow(`
 		INSERT INTO tournaments (winner_id, finished)
 		VALUES ($1, $2)
 		WHERE id=$3
- 		RETURNING name, prize`, uID, true, tID).Scan(&t.Name, &t.Prize)
+		RETURNING prize`, uID, true, tID).Scan(&prize)
 	if err != nil {
-		return t, entity.DBErr(err)
+		return entity.DBErr(err)
 	}
-
-	t.ID = tID
-	t.Winner = uID
-	t.Status = entity.Finished
 
 	_, err = tx.Exec(`
 		UPDATE users
 		SET balance = balance + $1
-		WHERE id = $2`, t.Prize, t.Winner)
+		WHERE id = $2`, prize, uID)
 	if err != nil {
-		return t, entity.DBErr(err)
+		return entity.DBErr(err)
 	}
-	return t, nil
+
+	err = tx.Commit()
+	if err != nil {
+		return entity.DBErr(err)
+	}
+	return nil
 }
 
-func (db DB) ValidFinish(tID int) error {
+func (db DB) ValidFinish(tID int) (bool, error) {
 	var finished bool
 	err := db.db.QueryRow(`
 		SELECT finished
 		FROM tournaments
 		WHERE id=$1`, tID).Scan(&finished)
 	if err != nil {
-		return entity.DBErr(err)
+		return false, entity.DBErr(err)
 	}
-	if finished {
-		return entity.FinishErr(errors.New("tournament is already finished"))
+	return finished, nil
+}
+
+func (db DB) GetTournFinished(id int) (entity.TournFinished, error) {
+	if id <= 0 {
+		return entity.TournFinished{}, entity.InvIDErr(errors.New("expected id > 0"))
 	}
-	return nil
+	var t entity.TournFinished
+	err := db.db.QueryRow(`
+		SELECT id, name, prize , winner_id
+		FROM tournaments 
+		WHERE id = $1`,
+		id).Scan(&t.ID, &t.Name, &t.Prize, &t.Winner)
+	if err != nil {
+		return t, entity.DBErr(fmt.Errorf("can't get data: %v", err))
+	}
+	rows, err := db.db.Query(`
+		SELECT users.id, users.name
+		FROM tournament_req
+		INNER JOIN users ON tournament_req.user_id = users.id
+		WHERE tournament_req.tournament_id = $1`, id)
+	if err != nil {
+		return t, entity.DBErr(fmt.Errorf("can't get data: %v", err))
+	}
+	defer rows.Close()
+	var w entity.Winner
+	for rows.Next() {
+		err := rows.Scan(&w.ID, &w.Name)
+		if w.ID == t.Winner {
+			w.Winner = true
+		}
+		if err != nil {
+			return t, entity.DBErr(fmt.Errorf("can't get data: %v", err))
+		}
+		t.Users = append(t.Users, w)
+	}
+	err = rows.Err()
+	if err != nil {
+		return t, entity.DBErr(fmt.Errorf("rows error: %v", err))
+	}
+	t.Status = entity.Finished
+	return t, nil
 }
 
 func (db DB) DelTourn(id int) error {
