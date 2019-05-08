@@ -61,7 +61,7 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 	return c.db.CreateTourn(t)
 }
 
-func (c Controller) GetTourn(id int) (interface{}, error) { ////////////////////////
+func (c Controller) GetTourn(id int) (interface{}, error) {
 	ok, err := c.db.ValidFinish(id)
 	if err != nil {
 		return entity.Tournament{}, err
@@ -88,7 +88,7 @@ func (c Controller) JoinTourn(tID, uID int) (entity.Tournament, error) {
 	return c.db.GetTourn(t.ID)
 }
 
-func (c Controller) FinishTourn(id int) (entity.TournFinished, error) { //////////////////////////////
+func (c Controller) FinishTourn(id int) (entity.TournFinished, error) {
 	ok, err := c.db.ValidFinish(id)
 	if err != nil {
 		return entity.TournFinished{}, err

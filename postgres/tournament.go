@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -17,6 +18,7 @@ func (db DB) CreateTourn(t entity.Tournament) (entity.Tournament, error) {
 	if err != nil {
 		return t, entity.DBErr(err)
 	}
+	t.Status = entity.Active
 	return t, nil
 }
 
@@ -167,7 +169,7 @@ func (db DB) TournUsers(tID int) (func() int, error) {
 	}
 	return func() int {
 		rand.Seed(time.Now().UTC().UnixNano())
-		r := rand.Intn(len(userID) + 1)
+		r := rand.Intn(len(userID))
 		return userID[r]
 	}, nil
 }
@@ -180,9 +182,9 @@ func (db DB) FinishTourn(tID, uID int) error {
 	}
 	var prize int
 	err = tx.QueryRow(`
-		INSERT INTO tournaments (winner_id, finished)
-		VALUES ($1, $2)
-		WHERE id=$3
+		UPDATE tournaments
+		SET winner_id = $1, finished = $2
+		WHERE id = $3
 		RETURNING prize`, uID, true, tID).Scan(&prize)
 	if err != nil {
 		return entity.DBErr(err)
@@ -212,6 +214,17 @@ func (db DB) ValidFinish(tID int) (bool, error) {
 	if err != nil {
 		return false, entity.DBErr(err)
 	}
+	rows, err := db.db.Query(`
+		SELECT user_id
+		FROM tournament_req
+		WHERE tournament_id = $1`, tID)
+	if err != nil {
+		return false, entity.DBErr(fmt.Errorf("can't get data: %v", err))
+	}
+	if err == sql.ErrNoRows {
+		return false, entity.FinishErr(errors.New("can't finish, no users"))
+	}
+	defer rows.Close()
 	return finished, nil
 }
 

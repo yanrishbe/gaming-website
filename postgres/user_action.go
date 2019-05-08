@@ -19,7 +19,6 @@ func New() (DB, error) {
 	if !ok {
 		return DB{}, entity.DBErr(errors.New("empty connection string"))
 	}
-	//connStr := "user=postgres dbname=gaming_website password=docker2147 host=localhost port=5432 sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return DB{}, entity.DBErr(err)

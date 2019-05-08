@@ -34,6 +34,7 @@ func New(c game.Controller) (*mux.Router, error) {
 	a.r.HandleFunc("/tournament", a.regTourn).Methods(http.MethodPost)
 	a.r.HandleFunc("/tournament/{id}", a.getTourn).Methods(http.MethodGet)
 	a.r.HandleFunc("/tournament/{id}/join", a.joinTourn).Methods(http.MethodPost)
+	a.r.HandleFunc("/tournament/{id}/finish", a.finishTourn).Methods(http.MethodPost)
 	return a.r, nil
 }
 
@@ -68,6 +69,20 @@ func (a API) getTourn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t, err := a.c.GetTourn(id)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, t)
+}
+
+func (a API) finishTourn(w http.ResponseWriter, r *http.Request) {
+	id, err := readID(r)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	t, err := a.c.FinishTourn(id)
 	if err != nil {
 		errResp(w, err)
 		return
