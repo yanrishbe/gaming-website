@@ -38,14 +38,14 @@ func (c Controller) DelUser(id int) error {
 
 func (c Controller) TakePoints(id, points int) (entity.User, error) {
 	if points < 1 {
-		return entity.User{}, entity.PointsErr(errors.New("points must be > 0"))
+		return entity.User{}, entity.PointsErr(errors.New("points must be greater than 0"))
 	}
 	return c.db.TakePoints(id, points)
 }
 
 func (c Controller) FundPoints(id, points int) (entity.User, error) {
 	if points < 1 {
-		return entity.User{}, entity.PointsErr(errors.New("points must be > 0"))
+		return entity.User{}, entity.PointsErr(errors.New("points must be greater than 0"))
 	}
 	return c.db.FundPoints(id, points)
 }
@@ -56,13 +56,13 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 		return t, err
 	}
 	if t.Deposit < 0 {
-		return t, entity.RegErr(errors.New("deposit must be > 0"))
+		return t, entity.RegErr(errors.New("deposit must be greater than 0"))
 	}
 	return c.db.CreateTourn(t)
 }
 
 func (c Controller) GetTourn(id int) (interface{}, error) {
-	ok, err := c.db.ValidFinish(id)
+	ok, err := c.db.ValidGetTourn(id)
 	if err != nil {
 		return entity.Tournament{}, err
 	}
@@ -94,11 +94,11 @@ func (c Controller) FinishTourn(id int) (entity.TournFinished, error) {
 		return entity.TournFinished{}, err
 	}
 	if ok {
-		return entity.TournFinished{}, entity.FinishErr(errors.New("tournament is already finished"))
+		return entity.TournFinished{}, entity.ReqErr(errors.New("tournament is already finished"))
 	}
 	winner, err := c.db.TournUsers(id)
 	if err != nil {
-		return entity.TournFinished{}, fmt.Errorf("error finding a winner %v", err)
+		return entity.TournFinished{}, fmt.Errorf("error finding a winner: %v", err)
 	}
 	wID := winner()
 	err = c.db.FinishTourn(id, wID)

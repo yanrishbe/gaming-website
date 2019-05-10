@@ -156,7 +156,7 @@ func PointsErr(err error) Error {
 	}
 }
 
-func FinishErr(err error) Error {
+func ReqErr(err error) Error {
 	return Error{
 		Type:    ErrInvReq,
 		Cause:   err,

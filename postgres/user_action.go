@@ -80,7 +80,7 @@ func (db DB) CreateUser(u entity.User) (entity.User, error) {
 
 func (db DB) GetUser(id int) (entity.User, error) {
 	if id <= 0 {
-		return entity.User{}, entity.InvIDErr(errors.New("expected id > 0"))
+		return entity.User{}, entity.InvIDErr(errors.New("expected id greater than 0"))
 	}
 	u := entity.User{}
 	err := db.db.QueryRow(`
