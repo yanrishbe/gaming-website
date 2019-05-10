@@ -33,7 +33,7 @@ func (u UserTourn) IsValid() error {
 type Winner struct {
 	ID     int    `json:"userId"`
 	Name   string `json:"name"`
-	Winner bool   `json:"winner"`
+	Winner bool   `json:"winner,omitempty"`
 }
 
 type TournFinished struct {

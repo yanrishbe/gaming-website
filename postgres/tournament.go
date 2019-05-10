@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/yanrishbe/gaming-website/entity"
 )
@@ -203,22 +201,6 @@ func (db DB) ValidJoin(tID, uID int) error {
 		return entity.RegErr(fmt.Errorf("user is already registered"))
 	}
 
-	rows, err := db.db.Query(`
-		SELECT tournament_id
-		FROM tournament_req
-		WHERE user_id = $1`, uID)
-	if err != nil {
-		return entity.DBErr(fmt.Errorf("can't get tournament data: %v", err))
-	}
-	if rows.Next() {
-		return entity.ReqErr(errors.New("trial to join more than one tournament"))
-	}
-	err = rows.Err()
-	if err != nil {
-		return entity.DBErr(err)
-	}
-	defer rows.Close()
-
 	var deposit int
 	err = db.db.QueryRow(`
 		SELECT deposit 
@@ -272,8 +254,8 @@ func (db DB) ValidFinish(tID int) (bool, error) {
 	return finished, nil
 }
 
-func (db DB) TournUsers(tID int) (func() int, error) {
-	rows, err := db.db.Query(`
+func getTournUsers(tx *sql.Tx, tID int) ([]int, error) {
+	rows, err := tx.Query(`
 		SELECT user_id
 		FROM tournament_req
 		WHERE tournament_id = $1`, tID)
@@ -281,37 +263,37 @@ func (db DB) TournUsers(tID int) (func() int, error) {
 		return nil, entity.DBErr(fmt.Errorf("can't get data: %v", err))
 	}
 	defer rows.Close()
-	var userID []int
+	var userIDs []int
 	var id int
 	for rows.Next() {
 		err := rows.Scan(&id)
 		if err != nil {
 			return nil, entity.DBErr(fmt.Errorf("can't get data: %v", err))
 		}
-		userID = append(userID, id)
+		userIDs = append(userIDs, id)
 	}
 	err = rows.Err()
 	if err != nil {
 		return nil, entity.DBErr(fmt.Errorf("rows error: %v", err))
 	}
-	return func() int {
-		rand.Seed(time.Now().UTC().UnixNano())
-		r := rand.Intn(len(userID))
-		return userID[r]
-	}, nil
+	return userIDs, nil
 }
 
-func (db DB) FinishTourn(tID, uID int) error {
+func (db DB) FinishTourn(tID int, chooseWinner func(ids []int) int) error {
 	tx, err := db.db.Begin()
 	if err != nil {
 		return entity.DBErr(fmt.Errorf("transaction error: %v", err))
 	}
 	defer tx.Rollback()
+
+	users, err := getTournUsers(tx, tID)
+	var uID = chooseWinner(users)
+
 	var prize int
 	err = tx.QueryRow(`
 		UPDATE tournaments
 		SET winner_id = $1, finished = $2
-		WHERE id = $3
+		WHERE id = $3	
 		RETURNING prize`, uID, true, tID).Scan(&prize)
 	if err != nil {
 		return entity.DBErr(err)

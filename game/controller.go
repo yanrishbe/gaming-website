@@ -2,7 +2,8 @@ package game
 
 import (
 	"errors"
-	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/yanrishbe/gaming-website/entity"
 	"github.com/yanrishbe/gaming-website/postgres"
@@ -37,14 +38,14 @@ func (c Controller) DelUser(id int) error {
 }
 
 func (c Controller) TakePoints(id, points int) (entity.User, error) {
-	if points < 1 {
+	if points <= 0 {
 		return entity.User{}, entity.PointsErr(errors.New("points must be greater than 0"))
 	}
 	return c.db.TakePoints(id, points)
 }
 
 func (c Controller) FundPoints(id, points int) (entity.User, error) {
-	if points < 1 {
+	if points <= 0 {
 		return entity.User{}, entity.PointsErr(errors.New("points must be greater than 0"))
 	}
 	return c.db.FundPoints(id, points)
@@ -55,7 +56,7 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 	if err != nil {
 		return t, err
 	}
-	if t.Deposit < 0 {
+	if t.Deposit <= 0 {
 		return t, entity.RegErr(errors.New("deposit must be greater than 0"))
 	}
 	return c.db.CreateTourn(t)
@@ -89,19 +90,23 @@ func (c Controller) JoinTourn(tID, uID int) (entity.Tournament, error) {
 }
 
 func (c Controller) FinishTourn(id int) (entity.TournFinished, error) {
-	ok, err := c.db.ValidFinish(id)
-	if err != nil {
-		return entity.TournFinished{}, err
-	}
-	if ok {
-		return entity.TournFinished{}, entity.ReqErr(errors.New("tournament is already finished"))
-	}
-	winner, err := c.db.TournUsers(id)
-	if err != nil {
-		return entity.TournFinished{}, fmt.Errorf("error finding a winner: %v", err)
-	}
-	wID := winner()
-	err = c.db.FinishTourn(id, wID)
+	//ok, err := c.db.ValidFinish(id)
+	//if err != nil {
+	//	return entity.TournFinished{}, err
+	//}
+	//if ok {
+	//	return entity.TournFinished{}, entity.ReqErr(errors.New("tournament is already finished"))
+	//}
+	//winner, err := c.db.TournUsers(id)
+	//if err != nil {
+	//	return entity.TournFinished{}, fmt.Errorf("error finding a winner: %v", err)
+	//}
+	//wID := winner()
+	err := c.db.FinishTourn(id, func(users []int) int {
+		rand.Seed(time.Now().UTC().UnixNano())
+		r := rand.Intn(len(users))
+		return users[r]
+	})
 	if err != nil {
 		return entity.TournFinished{}, err
 	}
