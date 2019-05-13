@@ -104,7 +104,7 @@ func (db DB) DelUser(id int) error {
 		DELETE FROM users 
 		WHERE id = $1`, u.ID)
 	if err != nil {
-		return entity.DBErr(err)
+		return entity.DBErr(fmt.Errorf("delete constraint on a dependent table: %v", err))
 	}
 	return nil
 }

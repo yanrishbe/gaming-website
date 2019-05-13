@@ -36,22 +36,14 @@ type Winner struct {
 	Winner bool   `json:"winner,omitempty"`
 }
 
-type TournFinished struct {
-	ID     int      `json:"id"`
-	Name   string   `json:"name"`
-	Winner int      `json:"winner"`
-	Prize  int      `json:"prize"`
-	Users  []Winner `json:"users"`
-	Status Status   `json:"status"`
-}
-
 type Tournament struct {
-	ID      int         `json:"id"`
-	Name    string      `json:"name"`
-	Deposit int         `json:"deposit"`
-	Prize   int         `json:"prize"`
-	Users   []UserTourn `json:"users"`
-	Status  Status      `json:"status"`
+	ID      int      `json:"id"`
+	Name    string   `json:"name"`
+	Deposit int      `json:"deposit"`
+	Winner  int      `json:"winner,omitempty"`
+	Prize   int      `json:"prize"`
+	Users   []Winner `json:"users"`
+	Status  Status   `json:"status"`
 }
 type Status string
 

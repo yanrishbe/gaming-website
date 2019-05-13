@@ -62,53 +62,47 @@ func (c Controller) RegTourn(t entity.Tournament) (entity.Tournament, error) {
 	return c.db.CreateTourn(t)
 }
 
-func (c Controller) GetTourn(id int) (interface{}, error) {
-	ok, err := c.db.ValidGetTourn(id)
-	if err != nil {
-		return entity.Tournament{}, err
-	}
-	if ok {
-		return c.db.GetTournFinished(id)
-	}
+func (c Controller) GetTourn(id int) (entity.Tournament, error) {
 	t, err := c.db.GetTourn(id)
-	if len(t.Users) == 0 {
-		t.Users = []entity.UserTourn{}
-	}
 	return t, err
 }
 
 func (c Controller) JoinTourn(tID, uID int) (entity.Tournament, error) {
-	err := c.db.ValidJoin(tID, uID)
-	if err != nil {
-		return entity.Tournament{}, err
-	}
-	t, err := c.db.JoinTourn(tID, uID)
+	t, err := c.db.JoinTourn(tID, uID, func(a int, b int) error {
+		if a < b {
+			return entity.RegErr(errors.New("balance is lower than deposit"))
+		}
+		return nil
+	})
 	if err != nil {
 		return t, err
 	}
 	return c.db.GetTourn(t.ID)
 }
 
-func (c Controller) FinishTourn(id int) (entity.TournFinished, error) {
-	//ok, err := c.db.ValidFinish(id)
-	//if err != nil {
-	//	return entity.TournFinished{}, err
-	//}
-	//if ok {
-	//	return entity.TournFinished{}, entity.ReqErr(errors.New("tournament is already finished"))
-	//}
-	//winner, err := c.db.TournUsers(id)
-	//if err != nil {
-	//	return entity.TournFinished{}, fmt.Errorf("error finding a winner: %v", err)
-	//}
-	//wID := winner()
+func (c Controller) FinishTourn(id int) (entity.Tournament, error) {
 	err := c.db.FinishTourn(id, func(users []int) int {
 		rand.Seed(time.Now().UTC().UnixNano())
 		r := rand.Intn(len(users))
 		return users[r]
 	})
 	if err != nil {
-		return entity.TournFinished{}, err
+		return entity.Tournament{}, err
 	}
-	return c.db.GetTournFinished(id)
+	return c.db.GetTourn(id)
+}
+
+func (c Controller) DelTourn(id int) error {
+	t, err := c.GetTourn(id)
+	if err != nil {
+		return err
+	}
+	if t.Status != entity.Finished {
+		_, err := c.FinishTourn(id)
+		if err != nil {
+			return err
+		}
+	}
+	err = c.db.DelTourn(id)
+	return err
 }
